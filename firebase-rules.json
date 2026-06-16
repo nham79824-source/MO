@@ -1,0 +1,62 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "users": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'ADMIN')",
+        ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'ADMIN')"
+      }
+    },
+
+    "users_email": {
+      "$emailKey": {
+        ".read": true,
+        ".write": true
+      }
+    },
+
+    "otps": {
+      "$emailKey": {
+        ".read": true,
+        ".write": true
+      }
+    },
+
+    "transactions": {
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "$txId": {
+        ".read": "auth != null"
+      }
+    },
+
+    "bookings": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+
+    "doctors": {
+      ".read": true,
+      ".write": "auth != null"
+    },
+
+    "partner_services": {
+      ".read": true,
+      ".write": "auth != null"
+    },
+
+    "chats": {
+      "$chatId": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
+    },
+
+    "settings": {
+      ".read": "auth != null",
+      ".write": "root.child('users').child(auth.uid).child('role').val() === 'ADMIN'"
+    }
+  }
+}

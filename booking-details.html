@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تفاصيل الحجز - معاملاتي</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/notifications.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+<style>
+  .detail-section{background:rgba(255,255,255,.03);border:1px solid var(--border-rgba);border-radius:25px;padding:28px;margin-bottom:20px;}
+  .detail-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.04);}
+  .detail-row:last-child{border-bottom:none;}
+  .detail-label{font-size:.8rem;font-weight:800;color:var(--text-muted);}
+  .detail-value{font-size:.9rem;font-weight:900;color:white;}
+  .status-pill{padding:6px 16px;border-radius:50px;font-size:.75rem;font-weight:900;display:inline-flex;align-items:center;gap:6px;}
+  .status-PENDING{background:rgba(245,158,11,.1);color:#f59e0b;border:1px solid rgba(245,158,11,.2);}
+  .status-ACCEPTED{background:rgba(16,185,129,.1);color:#10b981;border:1px solid rgba(16,185,129,.2);}
+  .status-REJECTED{background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.2);}
+  .status-COMPLETED{background:rgba(139,92,246,.1);color:#a78bfa;border:1px solid rgba(139,92,246,.2);}
+  .timeline{position:relative;padding-right:30px;}
+  .timeline::before{content:'';position:absolute;right:10px;top:0;bottom:0;width:2px;background:var(--border-rgba);}
+  .timeline-item{position:relative;padding-bottom:25px;}
+  .timeline-dot{position:absolute;right:-26px;top:4px;width:14px;height:14px;border-radius:50%;background:var(--gold);border:3px solid var(--bg-dark);box-shadow:0 0 0 3px var(--gold);}
+  .timeline-dot.done{background:var(--gold);}
+  .timeline-dot.pending{background:var(--border-rgba);box-shadow:0 0 0 3px rgba(197,160,33,.3);}
+  .timeline-date{font-size:.7rem;color:var(--text-muted);font-weight:700;margin-bottom:3px;}
+  .timeline-text{font-size:.85rem;font-weight:800;color:white;}
+</style>
+</head>
+<body>
+<script src="js/security.js"></script>
+<script src="js/firebase-config.js"></script>
+
+<nav class="glass-nav">
+  <a href="my-bookings.html" class="logo-container">
+    <div style="width:40px;height:40px;background:rgba(255,255,255,.05);border:1px solid var(--border-rgba);border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--gold);">
+      <i class="fas fa-chevron-right"></i>
+    </div>
+    <div style="font-weight:950;font-size:18px;color:white;">تفاصيل الحجز</div>
+  </a>
+  <div id="nav-right" style="display:flex;align-items:center;gap:15px;"></div>
+</nav>
+
+<div class="container" style="padding-top:30px;max-width:700px;">
+
+  <!-- Doctor Card -->
+  <div style="background:linear-gradient(135deg,rgba(197,160,33,.12),rgba(0,0,0,.3));border:1px solid var(--border-rgba);border-radius:30px;padding:30px;margin-bottom:25px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+    <img id="doc-avatar" src="https://api.dicebear.com/7.x/avataaars/svg?seed=doctor" style="width:90px;height:90px;border-radius:25px;border:3px solid var(--gold);object-fit:cover;flex-shrink:0;">
+    <div style="flex:1;">
+      <h2 id="doc-name" style="font-weight:950;font-size:1.4rem;color:white;margin:0 0 5px;">...</h2>
+      <p id="doc-specialty" style="color:var(--gold);font-weight:800;font-size:.88rem;margin:0 0 8px;"></p>
+      <span id="booking-status" class="status-pill status-PENDING">⏳ جاري التحميل</span>
+    </div>
+    <div style="text-align:center;">
+      <div style="font-size:1.8rem;font-weight:950;color:var(--gold);" id="booking-price">---</div>
+      <div style="font-size:.7rem;color:var(--text-muted);font-weight:700;">سعر الكشفية</div>
+    </div>
+  </div>
+
+  <!-- Details -->
+  <div class="detail-section">
+    <h3 style="font-weight:950;color:var(--gold);margin-bottom:20px;font-size:1rem;"><i class="fas fa-info-circle"></i> تفاصيل الموعد</h3>
+    <div class="detail-row">
+      <span class="detail-label">📅 التاريخ</span>
+      <span class="detail-value" id="b-date">---</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-label">🕐 الوقت</span>
+      <span class="detail-value" id="b-time">---</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-label">📍 العنوان</span>
+      <span class="detail-value" id="b-location">---</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-label">📋 نوع الخدمة</span>
+      <span class="detail-value" id="b-service">---</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-label">📞 هاتف الطبيب</span>
+      <span class="detail-value" id="b-doctor-phone">---</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-label">🆔 رقم الحجز</span>
+      <span class="detail-value" id="b-id" style="font-size:.75rem;color:var(--text-muted);">---</span>
+    </div>
+  </div>
+
+  <!-- Patient Notes -->
+  <div class="detail-section" id="notes-section" style="display:none;">
+    <h3 style="font-weight:950;color:#60a5fa;margin-bottom:15px;font-size:1rem;"><i class="fas fa-notes-medical"></i> ملاحظات الحجز</h3>
+    <p id="b-notes" style="color:var(--text-muted);font-weight:700;line-height:1.7;font-size:.88rem;"></p>
+  </div>
+
+  <!-- Timeline -->
+  <div class="detail-section">
+    <h3 style="font-weight:950;color:white;margin-bottom:20px;font-size:1rem;"><i class="fas fa-history"></i> مسار الحجز</h3>
+    <div class="timeline" id="timeline">
+      <div class="timeline-item">
+        <div class="timeline-dot done"></div>
+        <div class="timeline-date" id="tl-created">---</div>
+        <div class="timeline-text">تم إرسال طلب الحجز</div>
+      </div>
+      <div class="timeline-item" id="tl-item-2">
+        <div class="timeline-dot pending" id="tl-dot-2"></div>
+        <div class="timeline-date" id="tl-responded">بانتظار الرد</div>
+        <div class="timeline-text" id="tl-status-text">بانتظار قبول الطبيب...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div style="display:flex;gap:15px;flex-wrap:wrap;margin-bottom:40px;" id="action-btns">
+    <a id="btn-chat" href="#" class="btn btn-primary" style="flex:1;padding:18px;border-radius:18px;justify-content:center;display:none;">
+      <i class="fas fa-comment-dots"></i> الدردشة مع الطبيب
+    </a>
+    <button id="btn-cancel" onclick="cancelThisBooking()" class="btn" style="flex:1;padding:18px;border-radius:18px;background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.2);display:none;">
+      <i class="fas fa-times"></i> إلغاء الحجز
+    </button>
+  </div>
+
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/email-auth.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/notifications.js"></script>
+<script>
+let booking = null;
+
+const STATUS_MAP = {
+  PENDING: {text:'⏳ بانتظار القبول', class:'status-PENDING', tl:'في انتظار رد الطبيب...'},
+  ACCEPTED: {text:'✅ تم القبول', class:'status-ACCEPTED', tl:'قبل الطبيب حجزك! يمكنك التواصل معه الآن.'},
+  REJECTED: {text:'❌ مرفوض', class:'status-REJECTED', tl:'عذراً، رفض الطبيب الحجز.'},
+  COMPLETED: {text:'🏁 مكتمل', class:'status-COMPLETED', tl:'تم إنجاز الموعد بنجاح.'}
+};
+
+document.addEventListener('DOMContentLoaded', async () => {
+  if (!Store.user) { window.location.href = 'login.html'; return; }
+  const id = new URLSearchParams(location.search).get('id');
+  if (!id) { location.href = 'my-bookings.html'; return; }
+  await loadBooking(id);
+});
+
+async function loadBooking(id) {
+  try {
+    if (typeof firebaseDB !== 'undefined') {
+      const snap = await firebaseDB.ref(`bookings/${id}`).once('value');
+      if (snap.exists()) { booking = {id, ...snap.val()}; }
+    }
+    if (!booking) {
+      const local = JSON.parse(localStorage.getItem('wusul_bookings') || '[]');
+      booking = local.find(b => b.id === id) || null;
+    }
+    if (!booking) { alert('لم يتم العثور على الحجز'); location.href = 'my-bookings.html'; return; }
+    renderBooking();
+  } catch(e) {
+    console.error(e);
+  }
+}
+
+function renderBooking() {
+  const b = booking;
+  const statusInfo = STATUS_MAP[b.status] || STATUS_MAP.PENDING;
+
+  document.getElementById('doc-avatar').src = b.doctorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${b.doctorPhone}`;
+  document.getElementById('doc-name').textContent = b.doctorName || 'الطبيب';
+  document.getElementById('doc-specialty').textContent = b.specialty || b.serviceName || 'طب عام';
+  document.getElementById('booking-price').textContent = b.price || 'غير محدد';
+
+  const statusEl = document.getElementById('booking-status');
+  statusEl.textContent = statusInfo.text;
+  statusEl.className = 'status-pill ' + statusInfo.class;
+
+  document.getElementById('b-date').textContent = b.date || (b.createdAt ? new Date(b.createdAt).toLocaleDateString('ar-SY') : 'غير محدد');
+  document.getElementById('b-time').textContent = b.time || 'غير محدد';
+  document.getElementById('b-location').textContent = b.location || b.clinicName || 'غير محدد';
+  document.getElementById('b-service').textContent = b.serviceName || b.specialty || 'استشارة طبية';
+  document.getElementById('b-doctor-phone').textContent = b.doctorPhone || '---';
+  document.getElementById('b-id').textContent = b.id;
+
+  if (b.notes) {
+    document.getElementById('notes-section').style.display = 'block';
+    document.getElementById('b-notes').textContent = b.notes;
+  }
+
+  // Timeline
+  document.getElementById('tl-created').textContent = b.createdAt ? new Date(b.createdAt).toLocaleString('ar-SY') : '---';
+  const dot2 = document.getElementById('tl-dot-2');
+  const text2 = document.getElementById('tl-status-text');
+  text2.textContent = statusInfo.tl;
+  if (b.status !== 'PENDING') {
+    dot2.classList.remove('pending');
+    dot2.classList.add('done');
+    document.getElementById('tl-responded').textContent = b.respondedAt ? new Date(b.respondedAt).toLocaleString('ar-SY') : 'تم الرد';
+  }
+
+  // Action buttons
+  if (b.status === 'ACCEPTED') {
+    const chatBtn = document.getElementById('btn-chat');
+    chatBtn.href = `chat.html?booking_id=${b.id}&doctor=${b.doctorPhone}`;
+    chatBtn.style.display = 'flex';
+  }
+  if (b.status === 'PENDING') {
+    document.getElementById('btn-cancel').style.display = 'flex';
+  }
+}
+
+async function cancelThisBooking() {
+  if (!confirm('هل أنت متأكد من إلغاء هذا الحجز؟')) return;
+  try {
+    if (typeof firebaseDB !== 'undefined') {
+      await firebaseDB.ref(`bookings/${booking.id}`).update({ status: 'REJECTED', cancelledAt: Date.now() });
+    }
+    const local = JSON.parse(localStorage.getItem('wusul_bookings') || '[]');
+    const idx = local.findIndex(b => b.id === booking.id);
+    if (idx !== -1) { local[idx].status = 'REJECTED'; localStorage.setItem('wusul_bookings', JSON.stringify(local)); }
+    if (typeof Notify !== 'undefined') Notify.show('تم الإلغاء', 'تم إلغاء الحجز بنجاح', 'fas fa-check');
+    setTimeout(() => location.href = 'my-bookings.html', 1500);
+  } catch(e) { alert('فشل الإلغاء'); }
+}
+</script>
+</body>
+</html>

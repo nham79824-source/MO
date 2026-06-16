@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>حجوزاتي - معاملاتي</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/notifications.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+<style>
+  .filter-tabs{display:flex;gap:10px;margin-bottom:25px;flex-wrap:wrap;}
+  .filter-tab{padding:10px 20px;border-radius:50px;border:1px solid var(--border-rgba);background:rgba(255,255,255,0.03);color:var(--text-muted);font-weight:800;font-size:.82rem;cursor:pointer;transition:.3s;}
+  .filter-tab.active{background:var(--gold);color:#000;border-color:var(--gold);}
+  .booking-card{background:rgba(255,255,255,0.03);border:1px solid var(--border-rgba);border-radius:25px;padding:22px;margin-bottom:16px;display:flex;align-items:center;gap:20px;transition:.3s;position:relative;overflow:hidden;}
+  .booking-card:hover{border-color:var(--gold);background:rgba(197,160,33,0.05);transform:translateY(-2px);}
+  .booking-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(197,160,33,0.04),transparent);opacity:0;transition:.3s;}
+  .booking-card:hover::before{opacity:1;}
+  .doc-avatar{width:65px;height:65px;border-radius:20px;border:2px solid var(--border-rgba);object-fit:cover;flex-shrink:0;}
+  .booking-info{flex:1;}
+  .booking-info h3{font-weight:950;font-size:1.05rem;color:white;margin:0 0 4px;}
+  .booking-info p{font-size:.78rem;color:var(--text-muted);font-weight:700;margin:0 0 8px;}
+  .status-badge{display:inline-flex;align-items:center;gap:5px;padding:5px 14px;border-radius:50px;font-size:.72rem;font-weight:900;}
+  .status-PENDING{background:rgba(245,158,11,0.1);color:#f59e0b;border:1px solid rgba(245,158,11,.2);}
+  .status-ACCEPTED{background:rgba(16,185,129,0.1);color:#10b981;border:1px solid rgba(16,185,129,.2);}
+  .status-REJECTED{background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid rgba(239,68,68,.2);}
+  .status-COMPLETED{background:rgba(99,102,241,0.1);color:#818cf8;border:1px solid rgba(99,102,241,.2);}
+  .booking-actions{display:flex;flex-direction:column;gap:8px;flex-shrink:0;}
+  .action-btn{padding:9px 18px;border-radius:14px;border:none;font-weight:800;font-size:.78rem;cursor:pointer;transition:.3s;display:inline-flex;align-items:center;gap:6px;}
+  .btn-chat{background:rgba(37,99,235,0.15);color:#60a5fa;border:1px solid rgba(37,99,235,.2);}
+  .btn-chat:hover{background:rgba(37,99,235,.25);}
+  .btn-cancel{background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.2);}
+  .btn-cancel:hover{background:rgba(239,68,68,.2);}
+  .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin-bottom:30px;}
+  .stat-mini{background:rgba(255,255,255,.03);border:1px solid var(--border-rgba);border-radius:20px;padding:18px;text-align:center;}
+  .stat-mini .num{font-size:1.8rem;font-weight:950;color:var(--gold);}
+  .stat-mini .lbl{font-size:.7rem;color:var(--text-muted);font-weight:800;}
+  .empty-state{text-align:center;padding:60px 20px;color:var(--text-muted);}
+  .empty-state .icon{font-size:4rem;margin-bottom:20px;opacity:.4;}
+  @media(max-width:768px){.stats-row{grid-template-columns:repeat(2,1fr)}.booking-card{flex-direction:column;align-items:flex-start}.booking-actions{flex-direction:row;width:100%}}
+</style>
+</head>
+<body>
+
+<script src="js/security.js"></script>
+<script src="js/firebase-config.js"></script>
+
+<nav class="glass-nav">
+  <a href="index.html" class="logo-container">
+    <div class="logo-box"><img src="assets/logo.png" alt="معاملاتي"></div>
+    <div>
+      <div style="font-weight:950;font-size:19px;color:white;">معاملاتي</div>
+      <div style="font-size:9px;color:var(--gold);font-weight:800;letter-spacing:1px;">MY BOOKINGS</div>
+    </div>
+  </a>
+  <div id="nav-right" style="display:flex;align-items:center;gap:15px;"></div>
+</nav>
+
+<div class="container" style="padding-top:30px;">
+
+  <!-- Header -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:30px;flex-wrap:wrap;gap:15px;">
+    <div>
+      <h1 style="font-weight:950;font-size:2rem;margin:0;">مواعيدي الطبية 🩺</h1>
+      <p style="color:var(--text-muted);font-weight:700;font-size:.9rem;margin:5px 0 0;">متابعة جميع حجوزاتك الطبية في مكان واحد</p>
+    </div>
+    <a href="doctors.html" class="btn btn-primary" style="padding:14px 28px;border-radius:18px;">
+      <i class="fas fa-plus"></i> حجز موعد جديد
+    </a>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-mini">
+      <div class="num" id="stat-total">0</div>
+      <div class="lbl">إجمالي الحجوزات</div>
+    </div>
+    <div class="stat-mini">
+      <div class="num" id="stat-pending" style="color:#f59e0b;">0</div>
+      <div class="lbl">بانتظار القبول</div>
+    </div>
+    <div class="stat-mini">
+      <div class="num" id="stat-accepted" style="color:#10b981;">0</div>
+      <div class="lbl">مقبولة</div>
+    </div>
+    <div class="stat-mini">
+      <div class="num" id="stat-completed" style="color:#818cf8;">0</div>
+      <div class="lbl">مكتملة</div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filter-tabs">
+    <button class="filter-tab active" id="tab-all" onclick="filterBookings('ALL')">الكل</button>
+    <button class="filter-tab" id="tab-pending" onclick="filterBookings('PENDING')">⏳ منتظرة</button>
+    <button class="filter-tab" id="tab-accepted" onclick="filterBookings('ACCEPTED')">✅ مقبولة</button>
+    <button class="filter-tab" id="tab-rejected" onclick="filterBookings('REJECTED')">❌ مرفوضة</button>
+    <button class="filter-tab" id="tab-completed" onclick="filterBookings('COMPLETED')">🏁 مكتملة</button>
+  </div>
+
+  <!-- Bookings List -->
+  <div id="bookings-list">
+    <div class="empty-state">
+      <div class="icon">📅</div>
+      <h3 style="font-weight:950;margin-bottom:10px;">جاري تحميل حجوزاتك...</h3>
+    </div>
+  </div>
+
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/email-auth.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/notifications.js"></script>
+<script>
+let allBookings = [];
+let currentFilter = 'ALL';
+
+document.addEventListener('DOMContentLoaded', async () => {
+  if (!Store.user) { window.location.href = 'login.html'; return; }
+  await loadBookings();
+});
+
+async function loadBookings() {
+  try {
+    // Firebase first
+    if (typeof firebaseDB !== 'undefined') {
+      const snap = await firebaseDB.ref('bookings')
+        .orderByChild('patientPhone')
+        .equalTo(Store.user.phone)
+        .once('value');
+      if (snap.exists()) {
+        allBookings = Object.values(snap.val());
+      }
+    }
+
+    // Fallback: localStorage
+    if (allBookings.length === 0) {
+      const local = JSON.parse(localStorage.getItem('wusul_bookings') || '[]');
+      allBookings = local.filter(b => b.patientPhone === Store.user.phone);
+    }
+
+    updateStats();
+    renderBookings();
+  } catch(e) {
+    console.error('Bookings load error:', e);
+    // Fallback
+    const local = JSON.parse(localStorage.getItem('wusul_bookings') || '[]');
+    allBookings = local.filter(b => b.patientPhone === Store.user.phone);
+    updateStats();
+    renderBookings();
+  }
+}
+
+function updateStats() {
+  document.getElementById('stat-total').innerText = allBookings.length;
+  document.getElementById('stat-pending').innerText = allBookings.filter(b => b.status === 'PENDING').length;
+  document.getElementById('stat-accepted').innerText = allBookings.filter(b => b.status === 'ACCEPTED').length;
+  document.getElementById('stat-completed').innerText = allBookings.filter(b => b.status === 'COMPLETED').length;
+}
+
+function filterBookings(filter) {
+  currentFilter = filter;
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + filter.toLowerCase()).classList.add('active');
+  renderBookings();
+}
+
+function renderBookings() {
+  const list = currentFilter === 'ALL' ? allBookings : allBookings.filter(b => b.status === currentFilter);
+  const container = document.getElementById('bookings-list');
+
+  if (list.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">📭</div>
+        <h3 style="font-weight:950;margin-bottom:10px;color:white;">لا يوجد حجوزات</h3>
+        <p style="color:var(--text-muted);font-weight:700;">لم تقم بأي حجوز بعد أو لا يوجد حجوزات بهذه الحالة</p>
+        <a href="doctors.html" class="btn btn-primary" style="margin-top:20px;display:inline-flex;">احجز موعدك الآن</a>
+      </div>`;
+    return;
+  }
+
+  // Sort by date desc
+  const sorted = [...list].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+  container.innerHTML = sorted.map(b => `
+    <div class="booking-card" id="booking-${b.id}">
+      <img src="${b.doctorAvatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + b.doctorPhone}" class="doc-avatar" alt="${b.doctorName}">
+      <div class="booking-info">
+        <h3>${b.doctorName || 'طبيب'}</h3>
+        <p><i class="fas fa-stethoscope" style="color:var(--gold);margin-left:5px;"></i>${b.serviceName || b.specialty || 'طب عام'} • ${formatDate(b.date || b.createdAt)}</p>
+        ${b.time ? `<p><i class="fas fa-clock" style="color:#60a5fa;margin-left:5px;"></i>${b.time}</p>` : ''}
+        <span class="status-badge status-${b.status}">${getStatusIcon(b.status)} ${getStatusText(b.status)}</span>
+        ${b.price ? `<span style="margin-right:8px;font-size:.72rem;font-weight:900;color:var(--gold);">💰 ${b.price}</span>` : ''}
+      </div>
+      <div class="booking-actions">
+        ${b.status === 'ACCEPTED' ? `<a href="chat.html?booking_id=${b.id}&doctor=${b.doctorPhone}" class="action-btn btn-chat"><i class="fas fa-comment-dots"></i> دردشة</a>` : ''}
+        ${b.status === 'PENDING' ? `<button onclick="cancelBooking('${b.id}')" class="action-btn btn-cancel"><i class="fas fa-times"></i> إلغاء</button>` : ''}
+        <a href="booking-details.html?id=${b.id}" class="action-btn" style="background:rgba(255,255,255,.05);color:var(--text-muted);border:1px solid var(--border-rgba);"><i class="fas fa-info-circle"></i> تفاصيل</a>
+      </div>
+    </div>
+  `).join('');
+}
+
+function getStatusText(s) {
+  return {PENDING:'بانتظار القبول',ACCEPTED:'تم القبول',REJECTED:'مرفوض',COMPLETED:'مكتمل'}[s] || s;
+}
+function getStatusIcon(s) {
+  return {PENDING:'⏳',ACCEPTED:'✅',REJECTED:'❌',COMPLETED:'🏁'}[s] || '•';
+}
+function formatDate(d) {
+  if (!d) return 'غير محدد';
+  if (typeof d === 'number') return new Date(d).toLocaleDateString('ar-SY');
+  return d;
+}
+
+async function cancelBooking(id) {
+  if (!confirm('هل أنت متأكد من إلغاء هذا الحجز؟')) return;
+  try {
+    if (typeof firebaseDB !== 'undefined') {
+      await firebaseDB.ref(`bookings/${id}`).update({ status: 'REJECTED', cancelledAt: Date.now() });
+    }
+    const local = JSON.parse(localStorage.getItem('wusul_bookings') || '[]');
+    const idx = local.findIndex(b => b.id === id);
+    if (idx !== -1) { local[idx].status = 'REJECTED'; localStorage.setItem('wusul_bookings', JSON.stringify(local)); }
+    allBookings = allBookings.map(b => b.id === id ? {...b, status: 'REJECTED'} : b);
+    updateStats();
+    renderBookings();
+    if (typeof Notify !== 'undefined') Notify.show('تم الإلغاء', 'تم إلغاء الحجز بنجاح', 'fas fa-check-circle');
+  } catch(e) { alert('فشل إلغاء الحجز'); }
+}
+</script>
+</body>
+</html>

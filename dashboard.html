@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم - معاملاتي</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/notifications.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        .sidebar {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(15px);
+            border-radius: 30px;
+            padding: 2rem;
+            border: 1px solid var(--border-rgba);
+            height: fit-content;
+        }
+
+        .side-link {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            text-decoration: none;
+            color: var(--text-muted);
+            font-weight: 800;
+            border-radius: 18px;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            margin-bottom: 8px;
+            border: 1px solid transparent;
+        }
+
+        .side-link:hover,
+        .side-link.active {
+            background: rgba(197, 160, 33, 0.1);
+            color: var(--gold);
+            border-color: var(--border-rgba);
+            transform: translateX(-5px);
+            box-shadow: -10px 0 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 25px;
+            border-radius: 25px;
+            border: 1px solid var(--border-rgba);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            transition: 0.3s;
+        }
+
+        .stat-card:hover {
+            border-color: var(--gold);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .admin-panel {
+            background: rgba(15, 23, 42, 0.9);
+            color: white;
+            border-radius: 30px;
+            padding: 35px;
+            margin-top: 30px;
+            border: 1px solid var(--border-rgba);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .registration-form {
+            background: rgba(255, 255, 255, 0.02) !important;
+            padding: 30px !important;
+            border: 1px solid var(--border-rgba) !important;
+            border-radius: 30px !important;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="glass-nav">
+        <a href="index.html" class="logo-container">
+            <div class="logo-box">
+                <img src="assets/logo.png" alt="Moamalaty">
+            </div>
+            <div>
+                <div style="font-weight: 950; font-size: 20px; color: white;">معاملاتي <span
+                        style="font-size: 12px; color: var(--gold);">Moamalaty</span></div>
+                <div style="font-size: 8px; color: var(--gold); font-weight: 800; letter-spacing: 1px;">ROYAL DASHBOARD
+                </div>
+            </div>
+        </a>
+
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <button onclick="UIManager.toggleLanguage()" class="btn-icon" title="Change Language">🌐</button>
+            <button onclick="UIManager.toggleTheme()" class="btn-icon" title="Toggle Mode">🌗</button>
+        </div>
+
+        <div id="nav-right" style="display: flex; align-items: center; gap: 15px;"></div>
+    </nav>
+
+    <div class="container container-dashboard" style="margin-top: 20px;">
+        <div class="royal-dashboard-main">
+            <div class="welcome-section"
+                style="padding: 40px; background: linear-gradient(135deg, rgba(197, 160, 33, 0.1), transparent); border-radius: 40px; border: 1px solid var(--border-rgba); margin-bottom: 30px; position: relative; overflow: hidden;">
+                <!-- Decorative Gold Sparkle -->
+                <div
+                    style="position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; background: var(--gold); filter: blur(80px); opacity: 0.3;">
+                </div>
+
+                <div
+                    style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
+                    <div style="display: flex; align-items: center; gap: 25px;">
+                        <img id="user-avatar" src=""
+                            style="width: 100px; height: 100px; border-radius: 30px; border: 3px solid var(--gold); box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
+                        <div>
+                            <h1 style="font-size: 2.2rem; font-weight: 950; color: white; margin-bottom: 5px;">مرحباً،
+                                <span id="user-name" class="gold-text">...</span> 👑
+                            </h1>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <span id="role-badge-main"
+                                    style="background: var(--gold); color: black; padding: 4px 15px; border-radius: 50px; font-size: 11px; font-weight: 900; text-transform: uppercase;">...</span>
+                                <span id="kyc-badge"
+                                    style="background: rgba(255,255,255,0.05); color: #94A3B8; padding: 4px 15px; border-radius: 50px; font-size: 11px; font-weight: 900; border: 1px solid rgba(255,255,255,0.1);">حساب
+                                    غير موثق ⚠️</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 15px;">
+                        <div
+                            style="text-align: left; background: rgba(0,0,0,0.2); padding: 15px 25px; border-radius: 20px; border: 1px solid var(--border-rgba);">
+                            <p style="color: var(--text-muted); font-size: 11px; font-weight: 800; margin: 0 0 5px 0;">
+                                رصيدك القابل للسحب</p>
+                            <h2 style="color: var(--gold); font-weight: 950; margin: 0; font-size: 1.5rem;"
+                                id="wallet-summary-syp">...</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="container sidebar-layout">
+                <aside class="sidebar">
+                    <a href="dashboard.html" class="side-link active">🏠 الرئيسية</a>
+                    <a href="profile.html" class="side-link" id="kyc-link">🆔 توثيق الهوية (KYC)</a>
+                    <a href="patient-record.html" class="side-link" style="color: var(--gold);">📂 ملفي الطبي</a>
+                    <a href="my-bookings.html" class="side-link">📅 حجوزاتي الطبية</a>
+                    <a href="notifications.html" class="side-link" id="notif-link">🔔 الإشعارات</a>
+                    <a href="emergency.html" class="side-link" style="color: #ef4444;">🚨 وضع الطوارئ</a>
+                    <a href="doctors.html" class="side-link">🩺 حجز طبي</a>
+                    <a href="taxi.html" class="side-link">🚕 طلب تكسي</a>
+                    <a href="pharmacies.html" class="side-link">💊 صيدليات</a>
+                    <a href="wallet.html" class="side-link">💰 المحفظة والتحويل</a>
+                    <div id="extra-links"></div>
+                    <hr style="opacity: 0.1; margin: 20px 0;">
+                    <a href="#" onclick="Auth.logout()" class="side-link" style="color: #64748B;">🚪 تسجيل الخروج</a>
+                </aside>
+
+                <main>
+                    <div id="admin-section" style="display: none;">
+                        <!-- Points Control -->
+                        <div class="admin-panel" style="margin-top: 0;">
+                            <h3 style="font-weight: 900; margin-bottom: 25px; color: var(--gold);">🔱 تحكم الإدارة (نقاط
+                                +
+                                وكلاء)</h3>
+
+                            <div id="admin-status"
+                                style="display: none; padding: 12px; border-radius: 12px; margin-bottom: 20px; font-weight: 800; font-size: 0.8rem; text-align: center;">
+                            </div>
+
+                            <!-- User Search -->
+                            <div
+                                style="background: rgba(255,255,255,0.02); padding: 15px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 25px;">
+                                <h4 style="color: var(--gold); margin-bottom: 10px; font-weight: 900;">🔍 بحث عن مستخدم
+                                </h4>
+                                <input type="text" id="user-search-input" class="form-input"
+                                    style="background: rgba(255,255,255,0.05); color: white;"
+                                    placeholder="ابحث بالاسم أو رقم الهاتف..." onkeyup="searchUserUI()">
+                                <div id="user-search-results"
+                                    style="margin-top: 10px; display: none; background: rgba(0,0,0,0.2); border-radius: 10px; overflow: hidden;">
+                                </div>
+                            </div>
+
+                            <div class="registration-form"
+                                style="max-width: 400px; margin: 0 auto; background: white; padding: 20px; border-radius: 20px;">
+                                <div class="grid grid-2" style="gap: 15px;">
+                                    <div style="flex: 1.5;">
+                                        <input type="text" id="admin-phone" class="form-input"
+                                            style="background: rgba(0,0,0,0.05); color: #000;"
+                                            placeholder="رقم هاتف المستخدم" oninput="lookupAdminUser(this.value)">
+                                        <div id="admin-user-preview"
+                                            style="display:none; font-size: 0.7rem; font-weight: 800; color: #16a34a; margin-top: 5px; background: rgba(0,0,0,0.03); padding: 5px; border-radius: 8px;">
+                                        </div>
+                                    </div>
+                                    <input type="number" id="admin-points" class="form-input"
+                                        style="background: rgba(0,0,0,0.05); color: #000; height: 45px;"
+                                        placeholder="الكمية">
+                                </div>
+                                <select id="admin-currency" class="form-input"
+                                    style="background: rgba(0,0,0,0.05); margin-top: 10px; color: #000;">
+                                    <option value="SYP">ليرة سورية (SYP)</option>
+                                    <option value="USD">دولار أمريكي (USD)</option>
+                                </select>
+
+                                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                                    <button onclick="adminPoints('UP')" class="btn btn-primary" style="flex: 1.5;">إيداع
+                                        رصيد
+                                        (+)</button>
+                                    <button onclick="adminPoints('DOWN')" class="btn"
+                                        style="flex: 1; background: #dc2626; color: white;">سحب (-)</button>
+                                </div>
+                            </div>
+
+                            <hr style="margin: 25px 0; border: none; border-top: 1px solid rgba(255,255,255,0.1);">
+
+                            <!-- System Settings -->
+                            <h4 style="color: var(--gold); margin-bottom: 15px; font-weight: 900;">⚙️ إعدادات النظام</h4>
+                            <div style="background: rgba(255,255,255,0.02); padding: 15px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <h5 style="margin: 0; color: white; font-weight: 800; font-size: 0.9rem;">مدفوعات المحفظة</h5>
+                                    <p style="margin: 5px 0 0; color: var(--text-muted); font-size: 0.75rem; font-weight: 700;">تفعيل أو إيقاف التحويلات والدفع عبر المحفظة للجميع</p>
+                                </div>
+                                <label class="switch" style="position: relative; display: inline-block; width: 50px; height: 26px;">
+                                    <input type="checkbox" id="toggle-wallet-payments" onchange="toggleWalletPayments(this)" style="opacity: 0; width: 0; height: 0;">
+                                    <span class="slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #334155; transition: .4s; border-radius: 34px;"></span>
+                                    <style>
+                                    #toggle-wallet-payments:checked + .slider { background-color: var(--gold); }
+                                    #toggle-wallet-payments:checked + .slider:before { transform: translateX(24px); }
+                                    .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+                                    </style>
+                                </label>
+                            </div>
+
+                            <hr style="margin: 25px 0; border: none; border-top: 1px solid rgba(255,255,255,0.1);">
+
+                            <!-- Pending Doctors -->
+                            <div id="pending-doctors-section" style="display: none;">
+                                <h4 style="color: #f59e0b; margin-bottom: 15px; font-weight: 900;">⏳ طلبات انضمام أطباء
+                                    (معلقة)
+                                </h4>
+                                <div id="pending-doctors-list"></div>
+                                <hr style="margin: 25px 0; border: none; border-top: 1px solid rgba(255,255,255,0.1);">
+                            </div>
+
+                            <!-- Doctor Management -->
+                            <h4 style="color: var(--gold); margin-bottom: 15px; font-weight: 900;">🏥 إدارة الأطباء</h4>
+                            <div
+                                style="background: rgba(255,255,255,0.02); padding: 15px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.05);">
+                                <input type="text" id="manage-doc-phone" class="form-input"
+                                    style="background: rgba(255,255,255,0.05); color: white; margin-bottom: 10px;"
+                                    placeholder="رقم هاتف الطبيب">
+
+                                <div class="grid grid-2" style="gap: 10px; margin-bottom: 10px;">
+                                    <input type="text" id="edit-doc-spec" class="form-input"
+                                        style="background: rgba(255,255,255,0.05); color: white;"
+                                        placeholder="التخصص الجديد">
+                                    <input type="text" id="edit-doc-price" class="form-input"
+                                        style="background: rgba(255,255,255,0.05); color: white;"
+                                        placeholder="السعر (نصي)">
+                                </div>
+
+                                <div style="display: flex; gap: 10px;">
+                                    <button onclick="editDoctor()" class="btn btn-primary"
+                                        style="flex: 1; font-size: 0.8rem;">تعديل البيانات ✏️</button>
+                                    <button onclick="deleteDoctor()" class="btn"
+                                        style="flex: 1; background: #dc2626; color: white; font-size: 0.8rem;">حذف
+                                        الطبيب
+                                        🗑️</button>
+                                </div>
+                            </div>
+
+                            <!-- Add New Doctor -->
+                            <h4 style="color: var(--gold); margin: 25px 0 15px; font-weight: 900;">➕ إضافة طبيب جديد
+                            </h4>
+                            <div
+                                style="background: rgba(255,255,255,0.02); padding: 15px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 25px;">
+                                <input type="text" id="new-doc-name" class="form-input"
+                                    style="background: rgba(255,255,255,0.05); color: white; margin-bottom: 10px;"
+                                    placeholder="الاسم الكامل">
+                                <div class="grid grid-2" style="gap: 10px; margin-bottom: 10px;">
+                                    <input type="text" id="new-doc-phone" class="form-input"
+                                        style="background: rgba(255,255,255,0.05); color: white;"
+                                        placeholder="رقم الهاتف">
+                                    <input type="text" id="new-doc-pass" class="form-input"
+                                        style="background: rgba(255,255,255,0.05); color: white;"
+                                        placeholder="كلمة المرور">
+                                </div>
+                                <div class="grid grid-2" style="gap: 10px; margin-bottom: 10px;">
+                                    <input type="text" id="new-doc-spec" class="form-input"
+                                        style="background: rgba(255,255,255,0.05); color: white;" placeholder="التخصص">
+                                    <input type="text" id="new-doc-city" class="form-input"
+                                        style="background: rgba(255,255,255,0.05); color: white;" placeholder="المدينة">
+                                </div>
+                                <input type="text" id="new-doc-price" class="form-input"
+                                    style="background: rgba(255,255,255,0.05); color: white; margin-bottom: 10px;"
+                                    placeholder="السعر (مثال: $20 أو 50000 ل.س)">
+
+                                <button onclick="addNewDoctor()" class="btn btn-primary" style="width: 100%;">تسجيل طبيب
+                                    جديد
+                                    ✨</button>
+                            </div>
+
+                            <!-- Doctor Approval -->
+                            <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 25px;">
+                                <p style="font-size: 0.85rem; font-weight: 800; color: #94a3b8; flex: 1;">اعتماد العضو
+                                    كطبيب:
+                                </p>
+                                <button onclick="approveDoctor()" class="btn"
+                                    style="background: #2563eb; color: white; padding: 12px 30px; border-radius: 15px;">اعتماد
+                                    طبيب 🩺</button>
+                            </div>
+
+                            <div style="display: flex; gap: 15px; align-items: center;">
+                                <p style="font-size: 0.85rem; font-weight: 800; color: #94a3b8; flex: 1;">تفعيل رتبة
+                                    وكيل لهذا
+                                    الرقم:</p>
+                                <button onclick="activateAgent()" class="btn"
+                                    style="background: #16a34a; color: white; padding: 12px 30px; border-radius: 15px;">تفعيل
+                                    كوكيل رسمي ✅</button>
+                            </div>
+
+                            <!-- Health Services Management -->
+                            <div
+                                style="background: rgba(197, 160, 33, 0.05); padding: 20px; border-radius: 25px; border: 1px solid var(--border-rgba); margin-bottom: 25px;">
+                                <h4 style="color: var(--gold); margin-bottom: 15px; font-weight: 950;">🏥 إدارة المنظومة
+                                    الصحية الذكية</h4>
+                                <div class="grid grid-2" style="gap: 10px;">
+                                    <button class="btn btn-outline" style="font-size: 0.75rem; padding: 10px;"
+                                        onclick="Notify.show('الخريطة','تحديث نقاط الخريطة (قريباً)','fas fa-map-marked-alt')">تحديث
+                                        نقاط الخريطة</button>
+                                    <button class="btn btn-outline" style="font-size: 0.75rem; padding: 10px;"
+                                        onclick="Notify.show('تنبيه','إرسال تنبيه منطقة','fas fa-broadcast-tower')">بث
+                                        تنبيه منطقة</button>
+                                </div>
+                                <div
+                                    style="margin-top: 15px; display: flex; align-items: center; justify-content: space-between;">
+                                    <span style="font-size: 0.8rem; font-weight: 800; color: var(--text-muted);">وضع
+                                        الطوارئ المركزي</span>
+                                    <label class="switch">
+                                        <input type="checkbox" id="central-emergency-toggle">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <hr style="margin: 25px 0; border: none; border-top: 1px solid rgba(255,255,255,0.1);">
+
+                            <!-- Financial Reports Link -->
+                            <a href="reports.html" class="btn"
+                                style="display: block; width: 100%; text-align: center; background:rgba(255,255,255,0.1); color: white; margin-top: 15px;">
+                                📊 عرض التقارير المالية المركزية
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-3" style="margin-top: 30px; gap: 20px;">
+                        <div class="card" style="padding: 25px;">
+                            <p
+                                style="font-size: 0.75rem; font-weight: 800; color: var(--text-muted); margin-bottom: 10px;">
+                                رصيد الليرة
+                                السورية</p>
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <div style="font-size: 28px; filter: drop-shadow(0 0 10px rgba(197, 160, 33, 0.3));">
+                                    🇸🇾</div>
+                                <h4 id="user-balance-syp"
+                                    style="font-size: 1.4rem; font-weight: 950; color: var(--gold);">0
+                                </h4>
+                            </div>
+                        </div>
+                        <div class="card" style="padding: 25px;">
+                            <p
+                                style="font-size: 0.75rem; font-weight: 800; color: var(--text-muted); margin-bottom: 10px;">
+                                رصيد الدولار ($)
+                            </p>
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <div style="font-size: 28px; filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.3));">
+                                    🇺🇸</div>
+                                <h4 id="user-balance-usd" style="font-size: 1.4rem; font-weight: 950; color: #3b82f6;">0
+                                </h4>
+                            </div>
+                        </div>
+                        <div class="card" style="padding: 25px;">
+                            <p
+                                style="font-size: 0.75rem; font-weight: 800; color: var(--text-muted); margin-bottom: 10px;">
+                                الحجوزات النشطة
+                            </p>
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <div style="font-size: 28px; filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.3));">📅
+                                </div>
+                                <h4 id="active-bookings-count"
+                                    style="font-size: 1.4rem; font-weight: 950; color: #10b981;">0</h4>
+                            </div>
+                        </div>
+                    </div>
+            </div>
+
+            <div class="card" style="margin-top: 25px;">
+                <h3 style="font-weight: 900; margin-bottom: 20px;">🕒 النشاطات الأخيرة</h3>
+                <div id="activities-list"
+                    style="text-align: center; padding: 20px; color: var(--text-muted); font-weight: 700;">
+                    لا توجد عمليات مسجلة</div>
+            </div>
+            </main>
+        </div>
+
+        <!-- Doctor Details Modal -->
+        <div id="doctorDetailsModal" class="modal"
+            style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 10000; align-items: center; justify-content: center; backdrop-filter: blur(10px); padding: 20px;">
+            <div class="modal-content"
+                style="background: #111; width: 100%; max-width: 500px; border-radius: 35px; border: 1px solid rgba(255,255,255,0.1); padding: 30px; position: relative; animation: slideUp 0.4s ease-out;">
+                <button onclick="closeDoctorDetails()"
+                    style="position: absolute; top: 20px; right: 20px; background: none; border: none; color: #666; font-size: 1.5rem; cursor: pointer;">&times;</button>
+                <div id="doctorDetailsContent"></div>
+            </div>
+        </div>
+
+        <style>
+            @keyframes slideUp {
+                from {
+                    transform: translateY(50px);
+                    opacity: 0;
+                }
+
+                to {
+                    transform: translateY(0);
+                    opacity: 1;
+                }
+            }
+        </style>
+
+        <style>
+            /* Dark/Light Mode Transitions */
+            body {
+                transition: background 0.5s ease, color 0.5s ease;
+            }
+
+            body.light-mode {
+                --bg-dark: #F1F5F9;
+                --text-white: #1E293B;
+                --card-bg: rgba(255, 255, 255, 0.9);
+                --border-rgba: rgba(0, 0, 0, 0.1);
+                --glass: rgba(255, 255, 255, 0.8);
+            }
+
+            body.light-mode .card,
+            body.light-mode .sidebar {
+                background: #FFF;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            }
+
+            body.light-mode .side-link:hover,
+            body.light-mode .side-link.active {
+                background: rgba(197, 160, 33, 0.05);
+            }
+
+            @keyframes bounce {
+
+                0%,
+                100% {
+                    transform: translateY(0);
+                }
+
+                50% {
+                    transform: translateY(-10px);
+                }
+            }
+
+            @keyframes slideIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(20px);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+        </style>
+
+        <!-- Firebase SDKs -->
+        <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+        <!-- Core Systems -->
+        <script src="js/security.js"></script>
+        <script src="js/firebase-config.js"></script>
+        <script src="js/config.js"></script>
+        <script src="js/ui-manager.js"></script>
+        <script src="js/email-auth.js"></script>
+        <script src="js/auth.js"></script>
+        <script src="js/notifications.js"></script>
+        <script src="js/smart-notifications.js"></script>
+        <script src="js/dashboard.js"></script>
+        <script>
+            function showResult(text, isSuccess) {
+                const status = document.getElementById('admin-status');
+                status.style.display = 'block';
+                status.style.background = isSuccess ? '#dcfce7' : '#fee2e2';
+                status.style.color = isSuccess ? '#16a34a' : '#dc2626';
+                status.innerText = text;
+            }
+
+            // Keeping these specific Admin Actions here or move to dashboard.js later
+            // They are bound to HTML onclicks directly. Ideally should be in dashboard.js or auth.js
+            // For now, keeping them global to avoid breakage until full migration.
+
+            async function adminPoints(type) {
+                const phone = document.getElementById('admin-phone').value;
+                const points = parseInt(document.getElementById('admin-points').value);
+                const currency = document.getElementById('admin-currency').value;
+
+                if (!phone || isNaN(points)) return;
+
+                // Find User Data
+                const user = await Auth.findUserByPhone(phone);
+                if (!user) {
+                    showResult("خطأ: لم يتم العثور على مستخدم بهذا الرقم", false);
+                    return;
+                }
+
+                const actionText = (type === 'UP') ? 'إيداع' : 'سحب';
+                const amountText = `${points.toLocaleString()} ${currency}`;
+
+                if (!confirm(`⚠️ تأكيد العملية الملكية:\n\nنوع العملية: ${actionText}\nالمستلم: ${user.name}\nالرقم: ${phone}\nالمبلغ: ${amountText}`)) {
+                    return;
+                }
+
+                const final = (type === 'UP') ? points : -points;
+                const res = Store.updateUserBalance(phone, final, currency, "تحكم إداري مباشر", Store.user.role);
+
+                if (res.success) {
+                    showResult(`تم ${actionText} ${amountText} بنجاح للمستخدم ${user.name} ✅`, true);
+                    Notify.show("نجاح العملية", `تم ${actionText} الرصيد لـ ${user.name} بنجاح.`, "fas fa-cash-register");
+                } else {
+                    showResult(res.message, false);
+                }
+
+                UI.updateNavbar();
+            }
+
+            async function lookupAdminUser(phone) {
+                const preview = document.getElementById('admin-user-preview');
+                if (phone.length === 10) {
+                    const user = await Auth.findUserByPhone(phone);
+                    if (user) {
+                        preview.innerText = `👤 المستهدف: ${user.name}`;
+                        preview.style.display = 'block';
+                        preview.style.color = '#16a34a';
+                    } else {
+                        preview.innerText = `❌ رقم غير مسجل`;
+                        preview.style.display = 'block';
+                        preview.style.color = '#dc2626';
+                    }
+                } else {
+                    preview.style.display = 'none';
+                }
+            }
+
+            // Search User UI Helper
+            function searchUserUI() {
+                const query = document.getElementById('user-search-input').value;
+                const resultsDiv = document.getElementById('user-search-results');
+                if (query.length < 2) { resultsDiv.style.display = 'none'; return; }
+                const results = Store.searchUsers(query);
+                if (results.length > 0) {
+                    resultsDiv.style.display = 'block';
+                    resultsDiv.style.background = 'rgba(255,255,255,0.08)'; // Clearer background
+                    resultsDiv.style.border = '1px solid var(--gold)';
+                    resultsDiv.innerHTML = results.map(u => `
+                    <div onclick="selectUser('${u.phone}', '${u.name}')" 
+                         style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer; transition: 0.2s;"
+                         onmouseover="this.style.background='rgba(197, 160, 33, 0.1)'"
+                         onmouseout="this.style.background='transparent'">
+                        <div style="font-weight: 900; color: white;">${u.name}</div>
+                        <div style="font-size: 0.75rem; color: var(--gold);">${u.phone} • <span style="color:white; opacity:0.6;">${u.role}</span></div>
+                    </div>
+                `).join('');
+                } else {
+                    resultsDiv.style.display = 'block';
+                    resultsDiv.innerHTML = `<div style="padding: 15px; color: #94a3b8; text-align: center; font-weight:800;">❌ لا يوجد نتائج مطابقة</div>`;
+                }
+            }
+
+            function selectUser(phone, name) {
+                const targetInput = document.getElementById('admin-phone');
+                const manageDocInput = document.getElementById('manage-doc-phone');
+                if (targetInput) targetInput.value = phone;
+                if (manageDocInput) manageDocInput.value = phone;
+
+                const resultsDiv = document.getElementById('user-search-results');
+                if (resultsDiv) resultsDiv.style.display = 'none';
+
+                lookupAdminUser(phone);
+                Notify.show("تم الاختيار", `تم تحديد المستخدم: ${name}`, "fas fa-user-check");
+            }
+
+            async function approveDoctor() {
+                const phone = document.getElementById('manage-doc-phone').value;
+                if (!phone) return Notify.show("تنبيه", "يرجى إدخال رقم هاتف الطبيب", "fas fa-info-circle");
+
+                const res = await Auth.approveDoctor(phone);
+                if (res.success) {
+                    Notify.show("تم الاعتماد", res.message, "fas fa-check-circle");
+                } else {
+                    Notify.show("خطأ", res.message, "fas fa-times-circle");
+                }
+            }
+
+            function activateAgent() {
+                const phone = document.getElementById('admin-phone').value;
+                if (!phone) return Notify.show("تنبيه", "يرجى تحديد مستخدم أولاً", "fas fa-info-circle");
+
+                const res = Auth.activateAgent(phone);
+                if (res.success) {
+                    Notify.show("تم التفعيل", res.message, "fas fa-user-shield");
+                } else {
+                    Notify.show("خطأ", res.message, "fas fa-times-circle");
+                }
+            }
+            // --- System Settings ---
+        async function loadSystemSettings() {
+            try {
+                let enabled = true; // default
+                if (typeof firebaseDB !== 'undefined') {
+                    const snap = await firebaseDB.ref('settings/wallet_enabled').once('value');
+                    if (snap.exists()) enabled = snap.val();
+                } else {
+                    enabled = localStorage.getItem('wusul_wallet_enabled') !== 'false';
+                }
+                document.getElementById('toggle-wallet-payments').checked = enabled;
+            } catch (e) { console.error(e); }
+        }
+
+        async function toggleWalletPayments(el) {
+            const isEnabled = el.checked;
+            try {
+                if (typeof firebaseDB !== 'undefined') {
+                    await firebaseDB.ref('settings/wallet_enabled').set(isEnabled);
+                }
+                localStorage.setItem('wusul_wallet_enabled', isEnabled);
+                
+                if (typeof Notify !== 'undefined') {
+                    Notify.show('إعدادات النظام', `تم ${isEnabled ? 'تفعيل' : 'إيقاف'} عمليات الدفع بالمحفظة`, isEnabled ? 'fas fa-check-circle' : 'fas fa-times-circle');
+                }
+            } catch (e) {
+                alert('فشل حفظ الإعدادات');
+                el.checked = !isEnabled;
+            }
+        }
+    </script>
+</body>
+
+</html>

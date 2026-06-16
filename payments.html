@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>المدفوعات - معاملاتي</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+<style>
+.pay-hero{background:linear-gradient(135deg,rgba(197,160,33,.12),rgba(124,58,237,.08));border:1px solid var(--border-rgba);border-radius:28px;padding:32px;margin-bottom:28px;text-align:center;}
+.method-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin:20px 0;}
+.method-card{background:var(--card-bg);border:2px solid var(--border-rgba);border-radius:22px;padding:24px;text-align:center;cursor:pointer;transition:.3s;}
+.method-card:hover,.method-card.selected{border-color:var(--gold);background:rgba(197,160,33,.06);transform:translateY(-3px);}
+.method-card .icon{font-size:2.4rem;margin-bottom:10px;}
+.method-card .name{font-weight:900;font-size:.95rem;color:white;}
+.method-card .desc{font-size:.75rem;color:var(--text-muted);margin-top:4px;}
+.status-badge{display:inline-flex;align-items:center;gap:8px;padding:8px 18px;border-radius:50px;font-size:.82rem;font-weight:900;}
+.badge-pending{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);color:#fbbf24;}
+.badge-success{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:#4ade80;}
+.badge-fail{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#f87171;}
+.qr-box{width:180px;height:180px;background:white;border-radius:18px;padding:10px;margin:0 auto;display:flex;align-items:center;justify-content:center;}
+.tx-row{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--border-rgba);}
+.tx-row:last-child{border:none;}
+.amount-input{font-size:2rem;font-weight:900;text-align:center;color:var(--gold);}
+.step-panel{display:none;} .step-panel.active{display:block;animation:fadeUp .4s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.progress-bar{display:flex;gap:0;margin-bottom:30px;}
+.progress-step{flex:1;padding:12px;text-align:center;font-size:.75rem;font-weight:800;color:var(--text-muted);border-bottom:3px solid var(--border-rgba);transition:.3s;}
+.progress-step.done{color:var(--gold);border-color:var(--gold);}
+</style>
+</head>
+<body>
+<nav class="glass-nav">
+  <a href="index.html" class="logo-container">
+    <div class="logo-box"><img src="assets/logo.png" alt="معاملاتي"></div>
+    <div style="font-weight:950;font-size:19px;color:white;">معاملاتي</div>
+  </a>
+  <div class="nav-links">
+    <a href="dashboard.html">لوحتي</a>
+    <a href="wallet.html">المحفظة</a>
+  </div>
+</nav>
+
+<div class="container" style="max-width:720px;">
+
+  <!-- Progress -->
+  <div class="progress-bar" id="progress">
+    <div class="progress-step done" id="ps1">① اختيار الطريقة</div>
+    <div class="progress-step" id="ps2">② تفاصيل الدفع</div>
+    <div class="progress-step" id="ps3">③ التأكيد</div>
+  </div>
+
+  <!-- STEP 1: Choose Method -->
+  <div id="sp1" class="step-panel active">
+    <div class="pay-hero">
+      <div style="font-size:3rem;">💳</div>
+      <h1 style="font-size:1.6rem;font-weight:950;margin:12px 0;">اختر طريقة الدفع</h1>
+      <p style="color:var(--text-muted);font-weight:700;font-size:.88rem;">ادفع بشكل آمن ومضمون</p>
+    </div>
+
+    <div class="method-grid">
+      <div class="method-card selected" data-method="shamcash" onclick="selectMethod(this,'shamcash')">
+        <div class="icon">💰</div>
+        <div class="name">شام كاش</div>
+        <div class="desc">الدفع الإلكتروني السوري</div>
+      </div>
+      <div class="method-card" data-method="syriatel" onclick="selectMethod(this,'syriatel')">
+        <div class="icon">📱</div>
+        <div class="name">Syriatel Cash</div>
+        <div class="desc">محفظة سيريتل كاش</div>
+      </div>
+      <div class="method-card" data-method="mtn" onclick="selectMethod(this,'mtn')">
+        <div class="icon">🟡</div>
+        <div class="name">MTN Money</div>
+        <div class="desc">محفظة MTN</div>
+      </div>
+      <div class="method-card" data-method="cash" onclick="selectMethod(this,'cash')">
+        <div class="icon">🏦</div>
+        <div class="name">دفع عند الاستلام</div>
+        <div class="desc">ادفع وجهاً لوجه</div>
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-top:20px;">
+      <label>المبلغ (ليرة سورية)</label>
+      <input type="number" id="pay-amount" class="form-input amount-input" placeholder="0" min="1000" step="500">
+    </div>
+
+    <div class="form-group">
+      <label>الغرض من الدفع</label>
+      <select id="pay-purpose" class="form-input">
+        <option value="appointment">حجز موعد طبي</option>
+        <option value="consultation">استشارة طبية</option>
+        <option value="subscription">اشتراك المنصة</option>
+        <option value="service">خدمة أخرى</option>
+      </select>
+    </div>
+
+    <button onclick="goStep(2)" class="btn btn-primary" style="width:100%;padding:18px;border-radius:20px;">متابعة →</button>
+  </div>
+
+  <!-- STEP 2: Payment Details -->
+  <div id="sp2" class="step-panel">
+    <div class="card" style="margin-bottom:20px;">
+      <h2 style="font-weight:900;font-size:1.2rem;margin-bottom:20px;" id="method-title">تفاصيل الدفع عبر شام كاش</h2>
+
+      <!-- Sham Cash Instructions -->
+      <div id="detail-shamcash">
+        <div style="background:rgba(197,160,33,.06);border:1px solid var(--border-rgba);border-radius:18px;padding:20px;margin-bottom:20px;">
+          <p style="font-weight:900;color:var(--gold);margin-bottom:12px;">📋 خطوات الدفع:</p>
+          <ol style="color:var(--text-muted);font-weight:700;font-size:.88rem;line-height:2;padding-right:20px;">
+            <li>افتح تطبيق شام كاش على هاتفك</li>
+            <li>اختر "تحويل"</li>
+            <li>أدخل الرقم: <strong style="color:var(--gold);">0936020439</strong></li>
+            <li>أدخل المبلغ المطلوب</li>
+            <li>أدخل رقم العملية في الأسفل</li>
+          </ol>
+        </div>
+        <div class="qr-box">
+          <img id="qr-img" src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=shamcash://pay/0936020439" style="width:100%;border-radius:8px;" alt="QR">
+        </div>
+        <p style="text-align:center;color:var(--text-muted);font-size:.78rem;margin-top:10px;font-weight:700;">امسح رمز QR للدفع الفوري</p>
+      </div>
+
+      <!-- Syriatel -->
+      <div id="detail-syriatel" style="display:none;">
+        <div style="background:rgba(197,160,33,.06);border:1px solid var(--border-rgba);border-radius:18px;padding:20px;">
+          <p style="font-weight:900;color:var(--gold);margin-bottom:12px;">📋 خطوات Syriatel Cash:</p>
+          <ol style="color:var(--text-muted);font-weight:700;font-size:.88rem;line-height:2;padding-right:20px;">
+            <li>اتصل بـ <strong style="color:var(--gold);">*700#</strong> أو افتح التطبيق</li>
+            <li>اختر "تحويل أموال"</li>
+            <li>أدخل: <strong style="color:var(--gold);">0936020439</strong></li>
+            <li>أكّد العملية برمز PIN</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- MTN -->
+      <div id="detail-mtn" style="display:none;">
+        <div style="background:rgba(197,160,33,.06);border:1px solid var(--border-rgba);border-radius:18px;padding:20px;">
+          <p style="font-weight:900;color:var(--gold);margin-bottom:12px;">📋 خطوات MTN Money:</p>
+          <ol style="color:var(--text-muted);font-weight:700;font-size:.88rem;line-height:2;padding-right:20px;">
+            <li>اتصل بـ <strong style="color:var(--gold);">*111#</strong> أو افتح التطبيق</li>
+            <li>اختر "حوّل"</li>
+            <li>أدخل: <strong style="color:var(--gold);">0936020439</strong></li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- Cash -->
+      <div id="detail-cash" style="display:none;">
+        <div style="background:rgba(197,160,33,.06);border:1px solid var(--border-rgba);border-radius:18px;padding:20px;text-align:center;">
+          <div style="font-size:3rem;margin-bottom:12px;">🏦</div>
+          <p style="font-weight:900;color:white;">سيتم تأكيد الحجز بعد الدفع</p>
+          <p style="color:var(--text-muted);font-weight:700;font-size:.85rem;margin-top:8px;">ادفع المبلغ عند وصولك للعيادة أو المركز</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>رقم عملية التحويل (مطلوب للتأكيد)</label>
+      <input type="text" id="tx-ref" class="form-input" placeholder="مثال: TRX123456789">
+    </div>
+
+    <div style="display:flex;gap:12px;">
+      <button onclick="goStep(1)" class="btn btn-outline" style="flex:1;padding:16px;border-radius:18px;">← رجوع</button>
+      <button onclick="confirmPayment()" class="btn btn-primary" style="flex:2;padding:16px;border-radius:18px;">تأكيد الدفع ✅</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: Confirmation -->
+  <div id="sp3" class="step-panel">
+    <div class="card" style="text-align:center;">
+      <div id="pay-icon" style="font-size:4rem;margin-bottom:16px;">⏳</div>
+      <h2 id="pay-status-title" style="font-weight:950;font-size:1.5rem;">جاري المعالجة...</h2>
+      <p id="pay-status-msg" style="color:var(--text-muted);font-weight:700;margin-top:10px;font-size:.9rem;"></p>
+
+      <div style="background:rgba(255,255,255,.03);border-radius:18px;padding:20px;margin:24px 0;text-align:right;">
+        <div class="tx-row"><span style="color:var(--text-muted);font-weight:700;">رقم العملية</span><span id="inv-txid" style="font-weight:900;color:var(--gold);"></span></div>
+        <div class="tx-row"><span style="color:var(--text-muted);font-weight:700;">المبلغ</span><span id="inv-amount" style="font-weight:900;color:white;"></span></div>
+        <div class="tx-row"><span style="color:var(--text-muted);font-weight:700;">طريقة الدفع</span><span id="inv-method" style="font-weight:900;color:white;"></span></div>
+        <div class="tx-row"><span style="color:var(--text-muted);font-weight:700;">الغرض</span><span id="inv-purpose" style="font-weight:900;color:white;"></span></div>
+        <div class="tx-row"><span style="color:var(--text-muted);font-weight:700;">الحالة</span><span id="inv-status-badge"></span></div>
+        <div class="tx-row"><span style="color:var(--text-muted);font-weight:700;">التاريخ</span><span id="inv-date" style="font-weight:900;color:white;"></span></div>
+      </div>
+
+      <div style="display:flex;gap:12px;justify-content:center;">
+        <button onclick="printInvoice()" class="btn btn-outline" style="padding:14px 24px;border-radius:16px;">🖨 طباعة الفاتورة</button>
+        <a href="dashboard.html" class="btn btn-primary" style="padding:14px 24px;border-radius:16px;">العودة للوحة</a>
+      </div>
+    </div>
+
+    <!-- Recent Transactions -->
+    <div class="card" style="margin-top:24px;">
+      <h3 style="font-weight:900;margin-bottom:16px;">📋 سجل المعاملات</h3>
+      <div id="tx-list"><p style="color:var(--text-muted);font-weight:700;text-align:center;padding:20px;">لا توجد معاملات سابقة</p></div>
+    </div>
+  </div>
+
+</div>
+
+<script src="js/security.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script>
+let selectedMethod = 'shamcash';
+const methodNames = { shamcash:'شام كاش', syriatel:'Syriatel Cash', mtn:'MTN Money', cash:'دفع عند الاستلام' };
+
+function selectMethod(el, method) {
+  document.querySelectorAll('.method-card').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedMethod = method;
+}
+
+function goStep(n) {
+  const amt = document.getElementById('pay-amount').value;
+  if (n===2 && (!amt || parseFloat(amt)<1000)) {
+    alert('الرجاء إدخال مبلغ صحيح (1000 ل.س على الأقل)'); return;
+  }
+
+  document.querySelectorAll('.step-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById(`sp${n}`).classList.add('active');
+
+  // Update progress
+  [1,2,3].forEach(i=>{
+    const el = document.getElementById(`ps${i}`);
+    el.classList.toggle('done', i<=n);
+  });
+
+  if (n===2) {
+    document.getElementById('method-title').textContent = `تفاصيل الدفع عبر ${methodNames[selectedMethod]}`;
+    ['shamcash','syriatel','mtn','cash'].forEach(m=>{
+      document.getElementById(`detail-${m}`).style.display = m===selectedMethod ? 'block' : 'none';
+    });
+    // Update QR for amount
+    const a = document.getElementById('pay-amount').value;
+    document.getElementById('qr-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=shamcash://pay/0936020439?amount=${a}`;
+  }
+}
+
+async function confirmPayment() {
+  const ref  = document.getElementById('tx-ref').value.trim();
+  const amt  = document.getElementById('pay-amount').value;
+  const purp = document.getElementById('pay-purpose');
+  const purposeText = purp.options[purp.selectedIndex].text;
+
+  if (!ref && selectedMethod !== 'cash') {
+    alert('الرجاء إدخال رقم عملية التحويل'); return;
+  }
+
+  const txId = 'TX' + Date.now();
+  const now  = new Date().toLocaleString('ar-SY');
+
+  // Save to Firebase
+  const txData = {
+    id: txId, ref: ref||'نقدي',
+    amount: parseFloat(amt), currency: 'SYP',
+    method: methodNames[selectedMethod],
+    purpose: purposeText,
+    status: 'PENDING',
+    userPhone: Store.user?.phone || '',
+    timestamp: Date.now()
+  };
+
+  if (typeof firebaseDB !== 'undefined' && Store.user) {
+    try { await firebaseDB.ref(`transactions/${txId}`).set(txData); } catch(e) {}
+  }
+
+  // Save locally
+  const local = JSON.parse(localStorage.getItem('wusul_db_transactions')||'[]');
+  local.unshift(txData);
+  localStorage.setItem('wusul_db_transactions', JSON.stringify(local));
+
+  // Show confirmation step
+  goStep(3);
+  document.getElementById('pay-icon').textContent = selectedMethod==='cash' ? '🏦' : '⏳';
+  document.getElementById('pay-status-title').textContent = selectedMethod==='cash' ? 'تم تسجيل طلبك' : 'في انتظار التأكيد';
+  document.getElementById('pay-status-msg').textContent = selectedMethod==='cash'
+    ? 'سيتم تأكيد الحجز عند الدفع الفعلي'
+    : 'سيتم مراجعة عملية الدفع وتأكيدها خلال دقائق';
+
+  document.getElementById('inv-txid').textContent    = txId;
+  document.getElementById('inv-amount').textContent  = `${parseFloat(amt).toLocaleString()} ل.س`;
+  document.getElementById('inv-method').textContent  = methodNames[selectedMethod];
+  document.getElementById('inv-purpose').textContent = purposeText;
+  document.getElementById('inv-date').textContent    = now;
+  document.getElementById('inv-status-badge').innerHTML =
+    `<span class="status-badge badge-pending">⏳ قيد المراجعة</span>`;
+
+  loadTransactions();
+}
+
+function loadTransactions() {
+  const list = JSON.parse(localStorage.getItem('wusul_db_transactions')||'[]');
+  const el = document.getElementById('tx-list');
+  if (!list.length) return;
+  el.innerHTML = list.slice(0,5).map(t=>`
+    <div class="tx-row">
+      <div>
+        <p style="font-weight:900;color:white;font-size:.88rem;">${t.purpose||'عملية دفع'}</p>
+        <p style="font-size:.75rem;color:var(--text-muted);margin-top:3px;">${t.method} · ${new Date(t.timestamp).toLocaleDateString('ar-SY')}</p>
+      </div>
+      <div style="text-align:left;">
+        <p style="font-weight:900;color:var(--gold);">${(t.amount||0).toLocaleString()} ل.س</p>
+        <span class="status-badge badge-pending" style="font-size:.65rem;padding:4px 10px;">قيد المراجعة</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function printInvoice() { window.print(); }
+
+document.addEventListener('DOMContentLoaded', loadTransactions);
+</script>
+</body>
+</html>

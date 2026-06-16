@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>إنشاء حساب - معاملاتي</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+<script src="https://cdn.emailjs.com/dist/email.min.js"></script>
+<style>
+.auth-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;}
+.auth-card{width:100%;max-width:500px;background:var(--card-bg);backdrop-filter:blur(20px);border-radius:36px;padding:44px 38px;border:1px solid var(--border-rgba);box-shadow:var(--card-shadow);}
+@media(max-width:480px){.auth-card{padding:26px 18px;border-radius:22px;}}
+.step{display:none;} .step.active{display:block;animation:fadeUp .4s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.tab-switch{display:flex;background:rgba(255,255,255,0.04);border-radius:16px;padding:4px;margin-bottom:24px;border:1px solid var(--border-rgba);}
+.tab-btn{flex:1;padding:11px;border:none;background:none;color:var(--text-muted);font-weight:800;font-size:.83rem;border-radius:13px;cursor:pointer;transition:.3s;font-family:'Almarai',sans-serif;}
+.tab-btn.active{background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#000;}
+.role-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:16px 0;}
+.role-card{padding:16px 12px;border-radius:18px;border:2px solid var(--border-rgba);background:rgba(255,255,255,.02);cursor:pointer;text-align:center;transition:.3s;}
+.role-card:hover,.role-card.selected{border-color:var(--gold);background:rgba(197,160,33,.06);}
+.role-card .icon{font-size:1.8rem;margin-bottom:6px;}
+.role-card .lbl{font-size:.78rem;font-weight:900;color:var(--text-muted);}
+.role-card.selected .lbl{color:var(--gold);}
+.otp-boxes{display:flex;gap:10px;justify-content:center;margin:20px 0;}
+.otp-box{width:48px;height:56px;border-radius:14px;border:2px solid var(--border-rgba);background:rgba(15,15,18,.9);color:#fff;font-size:1.4rem;font-weight:900;text-align:center;outline:none;transition:.3s;font-family:'Almarai',sans-serif;}
+.otp-box:focus{border-color:var(--gold);box-shadow:0 0 16px rgba(197,160,33,.3);}
+.err-box{display:none;padding:12px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#f87171;border-radius:14px;font-size:.82rem;font-weight:800;margin-bottom:16px;text-align:center;}
+.ok-box{display:none;padding:12px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:#4ade80;border-radius:14px;font-size:.82rem;font-weight:800;margin-bottom:16px;text-align:center;}
+.icon-box{width:68px;height:68px;background:rgba(197,160,33,.08);border:2px solid var(--gold);border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;font-size:28px;color:var(--gold);}
+.extra-section{display:none;padding:18px;background:rgba(197,160,33,.04);border:1px solid var(--border-rgba);border-radius:20px;margin:16px 0;}
+.timer{font-size:.78rem;color:var(--text-muted);font-weight:700;text-align:center;margin-top:10px;}
+.timer span{color:var(--gold);}
+</style>
+</head>
+<body>
+<nav class="glass-nav">
+  <a href="index.html" class="logo-container">
+    <div class="logo-box"><img src="assets/logo.png" alt="معاملاتي"></div>
+    <div style="font-weight:950;font-size:19px;color:white;">معاملاتي</div>
+  </a>
+</nav>
+
+<div class="auth-wrap">
+
+  <!-- STEP 1: Register Form -->
+  <div id="s-reg" class="auth-card step active">
+    <div class="text-center mb-2">
+      <div class="icon-box">✨</div>
+      <h2 style="font-weight:950;font-size:1.9rem;color:white;">انضم إلى معاملاتي</h2>
+      <p style="color:var(--text-muted);font-weight:700;font-size:.88rem;margin-top:8px;">أنشئ حسابك وابدأ رحلتك الصحية الذكية</p>
+    </div>
+
+    <div id="err-reg" class="err-box"></div>
+
+    <form id="reg-form">
+      <!-- Name -->
+      <div class="form-group">
+        <label>الاسم الكامل</label>
+        <input type="text" id="inp-name" class="form-input" placeholder="مثلاً: محمد أحمد" required>
+      </div>
+
+      <!-- Email field -->
+      <div class="form-group">
+        <label>البريد الإلكتروني (أساسي)</label>
+        <input type="email" id="inp-email" class="form-input" placeholder="example@mail.com" required>
+      </div>
+
+      <!-- Phone field -->
+      <div class="form-group">
+        <label>رقم الهاتف</label>
+        <input type="text" id="inp-phone" class="form-input" placeholder="093xxxxxxx" required>
+      </div>
+
+      <!-- Password -->
+      <div class="form-group">
+        <label>كلمة المرور</label>
+        <div style="position:relative;">
+          <input type="password" id="inp-pass" class="form-input" placeholder="6 أحرف على الأقل" minlength="6" style="padding-left:50px;">
+          <i class="fas fa-eye" id="togglePass" style="position:absolute;left:18px;top:50%;transform:translateY(-50%);color:var(--gold);cursor:pointer;padding:10px;"></i>
+        </div>
+      </div>
+
+      <!-- Role Selection -->
+      <div style="margin:18px 0;">
+        <label style="font-size:.82rem;font-weight:800;color:var(--text-muted);display:block;margin-bottom:10px;">نوع الحساب</label>
+        <div class="role-grid">
+          <div class="role-card selected" data-role="USER" onclick="selectRole(this,'USER')">
+            <div class="icon">👤</div><div class="lbl">مريض / مستخدم</div>
+          </div>
+          <div class="role-card" data-role="DOCTOR" onclick="selectRole(this,'DOCTOR')">
+            <div class="icon">👨‍⚕️</div><div class="lbl">طبيب</div>
+          </div>
+          <div class="role-card" data-role="PARTNER" onclick="selectRole(this,'PARTNER')">
+            <div class="icon">🏢</div><div class="lbl">شريك تجاري</div>
+          </div>
+          <div class="role-card" data-role="PHARMACY" onclick="selectRole(this,'PHARMACY')">
+            <div class="icon">💊</div><div class="lbl">صيدلية</div>
+          </div>
+        </div>
+        <input type="hidden" id="selected-role" value="USER">
+      </div>
+
+      <!-- Doctor Extra Fields -->
+      <div id="doctor-extra" class="extra-section">
+        <p style="font-weight:900;color:var(--gold);font-size:.85rem;margin-bottom:14px;">📋 بيانات الطبيب</p>
+        <div class="form-group">
+          <label>التخصص</label>
+          <select id="doc-spec" class="form-input">
+            <option value="">اختر التخصص...</option>
+            <option>طب عام</option><option>قلبية</option><option>أطفال</option>
+            <option>جلدية</option><option>أسنان</option><option>عيون</option>
+            <option>عظمية</option><option>نسائية وتوليد</option><option>باطنية</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>اسم العيادة</label>
+          <input type="text" id="doc-clinic" class="form-input" placeholder="عيادة د. محمد">
+        </div>
+        <div class="form-group">
+          <label>سعر الكشفية</label>
+          <input type="number" id="doc-price" class="form-input" placeholder="بالليرة السورية">
+        </div>
+        <div class="form-group">
+          <label>صورة الشهادة</label>
+          <input type="file" id="doc-cert" accept="image/*" class="form-input" style="padding:10px;">
+        </div>
+      </div>
+
+      <!-- Partner Extra Fields -->
+      <div id="partner-extra" class="extra-section">
+        <p style="font-weight:900;color:var(--gold);font-size:.85rem;margin-bottom:14px;">🏢 بيانات الشركة</p>
+        <div class="form-group">
+          <label>اسم الشركة</label>
+          <input type="text" id="company-name" class="form-input" placeholder="شركة ...">
+        </div>
+        <div class="form-group">
+          <label>رقم السجل التجاري</label>
+          <input type="text" id="company-reg" class="form-input" placeholder="XXXXXXXXX">
+        </div>
+        <div class="form-group">
+          <label>شعار الشركة</label>
+          <input type="file" id="company-logo" accept="image/*" class="form-input" style="padding:10px;">
+        </div>
+        <div class="form-group">
+          <label>وثائق رسمية</label>
+          <input type="file" id="company-docs" accept=".pdf,image/*" class="form-input" style="padding:10px;">
+        </div>
+      </div>
+
+      <!-- Terms -->
+      <div style="display:flex;align-items:center;gap:10px;margin:18px 0;">
+        <input type="checkbox" id="terms" required style="width:18px;height:18px;accent-color:var(--gold);">
+        <label for="terms" style="margin:0;font-size:.8rem;font-weight:700;color:var(--text-muted);">
+          أوافق على <a href="terms.html" style="color:var(--gold);">شروط الخدمة</a> و
+          <a href="privacy.html" style="color:var(--gold);">سياسة الخصوصية</a>
+        </label>
+      </div>
+
+      <button type="submit" id="reg-btn" class="btn btn-primary" style="width:100%;padding:18px;border-radius:20px;font-size:1rem;">إنشاء الحساب ✨</button>
+    </form>
+
+    <div class="text-center" style="margin-top:18px;">
+      <p style="color:var(--text-muted);font-weight:700;font-size:.9rem;">لديك حساب؟
+        <a href="login.html" style="color:var(--gold);text-decoration:none;font-weight:900;">سجّل دخولك</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- STEP 2: OTP -->
+  <div id="s-otp" class="auth-card step">
+    <div class="text-center mb-2">
+      <div class="icon-box">📩</div>
+      <h2 style="font-weight:950;font-size:1.7rem;">تأكيد الحساب</h2>
+      <p id="otp-desc" style="color:var(--text-muted);font-weight:700;margin-top:8px;font-size:.85rem;">تم إرسال رمز التفعيل</p>
+    </div>
+    <div id="err-otp" class="err-box"></div>
+    <div id="ok-otp" class="ok-box"></div>
+    <div class="otp-boxes">
+      <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
+      <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
+      <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
+      <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
+      <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
+      <input class="otp-box" maxlength="1" type="text" inputmode="numeric">
+    </div>
+    <div class="timer">الرمز صالح لـ <span id="countdown">10:00</span></div>
+    <button id="verify-btn" onclick="verifyCode()" class="btn btn-primary" style="width:100%;padding:18px;border-radius:20px;margin-top:18px;">تفعيل الحساب ✅</button>
+    <div class="text-center" style="margin-top:14px;">
+      <button id="resend-btn" onclick="resendCode()" style="background:none;border:none;color:var(--gold);font-weight:900;cursor:pointer;font-size:.85rem;" disabled>إعادة الإرسال</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: Success -->
+  <div id="s-success" class="auth-card step">
+    <div class="text-center">
+      <div style="font-size:70px;margin-bottom:20px;">🎉</div>
+      <h2 style="font-weight:950;font-size:1.9rem;color:var(--gold);">مرحباً بك!</h2>
+      <p style="color:var(--text-muted);font-weight:700;margin-top:12px;">تم إنشاء حسابك بنجاح. أنت الآن عضو في منصة معاملاتي</p>
+      <a href="dashboard.html" class="btn btn-primary" style="display:block;margin-top:30px;padding:18px;border-radius:20px;text-align:center;">انتقل إلى لوحتي 🚀</a>
+    </div>
+  </div>
+
+</div>
+
+<script src="js/security.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/config.js"></script>
+<script src="js/email-auth.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/syria-data.js"></script>
+<script>
+let regMode = 'email'; // Forced email mode for verification
+let selectedRole = 'USER';
+let pendingUser = null;
+let targetContact = '';
+let timer = null;
+
+function selectRole(el, role) {
+  document.querySelectorAll('.role-card').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedRole = role;
+  document.getElementById('selected-role').value = role;
+  document.getElementById('doctor-extra').style.display  = role==='DOCTOR'  ? 'block' : 'none';
+  document.getElementById('partner-extra').style.display = role==='PARTNER' ? 'block' : 'none';
+}
+
+function showStep(id) {
+  document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function startCountdown(s=600) {
+  clearInterval(timer);
+  document.getElementById('resend-btn').disabled = true;
+  const el = document.getElementById('countdown');
+  timer = setInterval(()=>{
+    const m=Math.floor(s/60), sec=s%60;
+    el.textContent=`${m}:${sec.toString().padStart(2,'0')}`;
+    s--;
+    if(s<0){clearInterval(timer);el.textContent='0:00';document.getElementById('resend-btn').disabled=false;}
+  },1000);
+}
+
+// OTP boxes
+document.querySelectorAll('.otp-box').forEach((box,i,boxes)=>{
+  box.addEventListener('input',()=>{ if(box.value&&i<boxes.length-1) boxes[i+1].focus(); });
+  box.addEventListener('keydown',e=>{ if(e.key==='Backspace'&&!box.value&&i>0) boxes[i-1].focus(); });
+  box.addEventListener('paste',e=>{
+    e.preventDefault();
+    const p=(e.clipboardData||window.clipboardData).getData('text').replace(/\D/g,'');
+    [...p].slice(0,6).forEach((c,j)=>{ if(boxes[j]) boxes[j].value=c; });
+    const last=Math.min(p.length,5); if(boxes[last]) boxes[last].focus();
+  });
+});
+
+function getOTP(){ return [...document.querySelectorAll('.otp-box')].map(b=>b.value).join(''); }
+function clearBoxes(){ document.querySelectorAll('.otp-box').forEach(b=>b.value=''); document.querySelectorAll('.otp-box')[0].focus(); }
+function showErr(el,msg){ el.textContent=msg; el.style.display='block'; }
+function showOk(el,msg){ el.textContent=msg; el.style.display='block'; }
+
+// ── Register Submit ──────────────────────────────────
+document.getElementById('reg-form').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const btn = document.getElementById('reg-btn');
+  const errBox = document.getElementById('err-reg');
+  errBox.style.display='none';
+
+  const name  = document.getElementById('inp-name').value.trim();
+  const pass  = document.getElementById('inp-pass').value;
+  const role  = selectedRole;
+
+  if(!name){ showErr(errBox,'الرجاء إدخال الاسم الكامل'); return; }
+  if(pass.length<6){ showErr(errBox,'كلمة المرور يجب أن تكون 6 أحرف على الأقل'); return; }
+
+  let extra = {};
+  if(role==='DOCTOR'){
+    extra = { specialty:document.getElementById('doc-spec').value, clinic:document.getElementById('doc-clinic').value, price:document.getElementById('doc-price').value };
+  }
+  if(role==='PARTNER'){
+    extra = { companyName:document.getElementById('company-name').value, regNumber:document.getElementById('company-reg').value };
+  }
+
+  btn.disabled=true; btn.textContent='جاري الإنشاء...';
+
+  const email=document.getElementById('inp-email').value.trim();
+  const phone=document.getElementById('inp-phone').value.trim();
+
+  if(!email || !phone){ showErr(errBox,'يرجى ملء جميع الحقول المطلوبة'); btn.disabled=false; btn.textContent='إنشاء الحساب ✨'; return; }
+  
+  targetContact=email;
+  extra.phone=phone; // Save phone to extra profile info
+  
+  // Always register with email
+  const res = await EmailAuth.registerWithEmail(name, email, pass, role, extra);
+
+  if(!res.success){ showErr(errBox,res.message||'فشل الإنشاء'); btn.disabled=false; btn.textContent='إنشاء الحساب ✨'; return; }
+  pendingUser=res.user;
+
+  btn.textContent='جاري إرسال رمز التفعيل...';
+
+  const otpRes = await EmailAuth.sendOTP(targetContact);
+  document.getElementById('otp-desc').textContent=`أُرسل الرمز إلى ${targetContact}`;
+
+  if(otpRes.success){
+    showStep('s-otp'); startCountdown(); clearBoxes();
+    if(otpRes.simulated&&otpRes.devCode){
+      const code=otpRes.devCode.toString();
+      document.querySelectorAll('.otp-box').forEach((b,i)=>b.value=code[i]||'');
+      showOk(document.getElementById('ok-otp'),`[تطوير] الرمز: ${code}`);
+    }
+  } else {
+    showErr(errBox,otpRes.message||'فشل الإرسال');
+    btn.disabled=false; btn.textContent='إنشاء الحساب ✨';
+  }
+});
+
+// ── Verify ───────────────────────────────────────────
+async function verifyCode(){
+  const code=getOTP();
+  if(code.length<6){ showErr(document.getElementById('err-otp'),'أدخل الرمز كاملاً'); return; }
+  const btn=document.getElementById('verify-btn');
+  btn.disabled=true; btn.textContent='جاري التحقق...';
+
+  const vRes = await EmailAuth.verifyOTP(targetContact,code);
+  if(vRes.success) await EmailAuth.markVerified(targetContact);
+
+  if(vRes.success){
+    clearInterval(timer);
+    Auth.finalizeLogin(pendingUser,null);
+    showStep('s-success');
+  } else {
+    showErr(document.getElementById('err-otp'),vRes.message||'رمز خاطئ');
+    btn.disabled=false; btn.textContent='تفعيل الحساب ✅';
+  }
+}
+
+async function resendCode(){
+  clearBoxes();
+  if(regMode==='email') await EmailAuth.sendOTP(targetContact);
+  else await Auth.sendOTP(targetContact,'');
+  startCountdown();
+  showOk(document.getElementById('ok-otp'),'تم إعادة إرسال الرمز');
+}
+
+// Toggle pass
+document.getElementById('togglePass').addEventListener('click',function(){
+  const inp=document.getElementById('inp-pass');
+  inp.type=inp.type==='password'?'text':'password';
+  this.classList.toggle('fa-eye-slash');
+});
+
+// URL param: ?mode=doctor
+document.addEventListener('DOMContentLoaded',()=>{
+  const p=new URLSearchParams(location.search);
+  if(p.get('mode')==='doctor'){
+    document.querySelector('[data-role="DOCTOR"]').click();
+  }
+  if(p.get('mode')==='partner'){
+    document.querySelector('[data-role="PARTNER"]').click();
+  }
+});
+</script>
+</body>
+</html>

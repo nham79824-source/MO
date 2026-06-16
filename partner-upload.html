@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>رفع ملفات الشريك - معاملاتي</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+<style>
+.upload-zone{border:2px dashed var(--border-rgba);border-radius:24px;padding:48px 24px;text-align:center;transition:.3s;cursor:pointer;background:rgba(255,255,255,.02);}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--gold);background:rgba(197,160,33,.05);}
+.upload-zone .icon{font-size:3.5rem;margin-bottom:14px;}
+.preview-table{width:100%;border-collapse:collapse;margin-top:16px;}
+.preview-table th{background:rgba(197,160,33,.1);color:var(--gold);padding:12px;font-size:.78rem;font-weight:900;text-align:right;}
+.preview-table td{padding:10px 12px;border-bottom:1px solid var(--border-rgba);color:var(--text-muted);font-size:.8rem;font-weight:700;}
+.preview-table tr:hover td{background:rgba(255,255,255,.02);}
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:20px 0;}
+.stat-card{background:var(--card-bg);border:1px solid var(--border-rgba);border-radius:18px;padding:18px;text-align:center;}
+.stat-val{font-size:1.8rem;font-weight:950;color:var(--gold);}
+.stat-lbl{font-size:.75rem;color:var(--text-muted);font-weight:700;margin-top:4px;}
+.progress-ring{width:100%;height:6px;background:rgba(255,255,255,.05);border-radius:10px;margin:16px 0;overflow:hidden;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-dark));border-radius:10px;transition:width .5s ease;width:0%;}
+</style>
+</head>
+<body>
+<nav class="glass-nav">
+  <a href="index.html" class="logo-container">
+    <div class="logo-box"><img src="assets/logo.png" alt="معاملاتي"></div>
+    <div style="font-weight:950;font-size:19px;color:white;">معاملاتي</div>
+  </a>
+  <div class="nav-links">
+    <a href="dashboard.html">لوحتي</a>
+  </div>
+</nav>
+
+<div class="container" style="max-width:900px;">
+  <div style="margin-bottom:28px;">
+    <h1 style="font-size:1.8rem;font-weight:950;">📊 رفع ملفات الخدمات</h1>
+    <p style="color:var(--text-muted);font-weight:700;margin-top:8px;">ارفع ملف Excel أو CSV لإدراج خدماتك تلقائياً على المنصة</p>
+  </div>
+
+  <!-- Template Download -->
+  <div class="card" style="margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+    <div>
+      <p style="font-weight:900;color:white;">📥 قالب Excel جاهز</p>
+      <p style="font-size:.82rem;color:var(--text-muted);font-weight:700;margin-top:4px;">حمّل القالب واملأه بخدماتك ثم ارفعه</p>
+    </div>
+    <button onclick="downloadTemplate()" class="btn btn-outline" style="padding:12px 24px;">
+      <i class="fas fa-download"></i> تحميل القالب
+    </button>
+  </div>
+
+  <!-- Upload Zone -->
+  <div class="card" style="margin-bottom:24px;">
+    <h3 style="font-weight:900;margin-bottom:16px;">رفع الملف</h3>
+
+    <div class="upload-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+      <div class="icon">📂</div>
+      <p style="font-weight:900;color:white;font-size:1rem;">اسحب الملف هنا أو اضغط للاختيار</p>
+      <p style="color:var(--text-muted);font-size:.82rem;font-weight:700;margin-top:8px;">يدعم: Excel (.xlsx, .xls) و CSV (.csv) — الحد الأقصى 10MB</p>
+      <input type="file" id="file-input" accept=".xlsx,.xls,.csv" style="display:none;" onchange="handleFile(this.files[0])">
+    </div>
+
+    <!-- Progress -->
+    <div id="upload-progress" style="display:none;margin-top:16px;">
+      <div style="display:flex;justify-content:space-between;font-size:.8rem;font-weight:800;color:var(--text-muted);">
+        <span id="progress-text">جاري المعالجة...</span>
+        <span id="progress-pct">0%</span>
+      </div>
+      <div class="progress-ring"><div class="progress-fill" id="progress-fill"></div></div>
+    </div>
+  </div>
+
+  <!-- Stats after parse -->
+  <div id="stats-section" style="display:none;">
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-val" id="stat-rows">0</div>
+        <div class="stat-lbl">إجمالي السجلات</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-valid">0</div>
+        <div class="stat-lbl">سجلات صالحة</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-errors">0</div>
+        <div class="stat-lbl">أخطاء</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Preview Table -->
+  <div id="preview-section" style="display:none;" class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
+      <h3 style="font-weight:900;">معاينة البيانات</h3>
+      <div style="display:flex;gap:10px;">
+        <button onclick="clearData()" class="btn btn-outline" style="padding:10px 18px;">🗑 مسح</button>
+        <button onclick="saveData()" id="save-btn" class="btn btn-primary" style="padding:10px 20px;">💾 حفظ ونشر الخدمات</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="preview-table" id="data-table">
+        <thead id="table-head"></thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+    <p id="preview-note" style="color:var(--text-muted);font-size:.78rem;font-weight:700;margin-top:12px;text-align:center;"></p>
+  </div>
+
+  <!-- Saved Services -->
+  <div class="card" style="margin-top:24px;">
+    <h3 style="font-weight:900;margin-bottom:16px;">🗂 الخدمات المنشورة</h3>
+    <div id="saved-services"><p style="color:var(--text-muted);font-weight:700;text-align:center;padding:20px;">لم يتم نشر خدمات بعد</p></div>
+  </div>
+</div>
+
+<script src="js/security.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script>
+let parsedData = [];
+let headers    = [];
+
+// ── Drag & Drop ────────────────────────────────────
+const zone = document.getElementById('drop-zone');
+zone.addEventListener('dragover', e=>{ e.preventDefault(); zone.classList.add('drag'); });
+zone.addEventListener('dragleave', ()=>zone.classList.remove('drag'));
+zone.addEventListener('drop', e=>{ e.preventDefault(); zone.classList.remove('drag'); handleFile(e.dataTransfer.files[0]); });
+
+// ── File Handler ───────────────────────────────────
+function handleFile(file) {
+  if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (!['xlsx','xls','csv'].includes(ext)) { alert('صيغة الملف غير مدعومة'); return; }
+  if (file.size > 10*1024*1024) { alert('حجم الملف يتجاوز 10MB'); return; }
+
+  showProgress('جاري قراءة الملف...', 20);
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      showProgress('جاري تحليل البيانات...', 60);
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { header:1 });
+
+      if (rows.length < 2) { alert('الملف فارغ أو لا يحتوي بيانات'); hideProgress(); return; }
+
+      headers = rows[0].map(h => (h||'').toString().trim());
+      parsedData = rows.slice(1).filter(r => r.some(c=>c!==null&&c!==''));
+
+      showProgress('اكتملت المعالجة!', 100);
+      setTimeout(()=>{ hideProgress(); renderTable(); }, 600);
+    } catch(err) {
+      alert('خطأ في قراءة الملف: ' + err.message);
+      hideProgress();
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function renderTable() {
+  const valid  = parsedData.filter(r => r[0]).length;
+  const errors = parsedData.length - valid;
+
+  document.getElementById('stat-rows').textContent   = parsedData.length;
+  document.getElementById('stat-valid').textContent  = valid;
+  document.getElementById('stat-errors').textContent = errors;
+  document.getElementById('stats-section').style.display  = 'block';
+  document.getElementById('preview-section').style.display = 'block';
+
+  // Build table
+  const thead = document.getElementById('table-head');
+  const tbody = document.getElementById('table-body');
+  thead.innerHTML = `<tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr>`;
+
+  const preview = parsedData.slice(0, 10);
+  tbody.innerHTML = preview.map(row=>`
+    <tr>${headers.map((_,i)=>`<td>${row[i]!==undefined?row[i]:''}</td>`).join('')}</tr>
+  `).join('');
+
+  document.getElementById('preview-note').textContent =
+    parsedData.length > 10 ? `عرض أول 10 سجلات من أصل ${parsedData.length}` : '';
+}
+
+async function saveData() {
+  if (!parsedData.length) return;
+  const btn = document.getElementById('save-btn');
+  btn.disabled=true; btn.textContent='جاري الحفظ...';
+
+  const userPhone = Store.user?.phone || 'unknown';
+  const services  = parsedData.map((row, idx) => {
+    const obj = { id:'svc_'+Date.now()+'_'+idx, uploadedBy:userPhone, createdAt:new Date().toISOString() };
+    headers.forEach((h,i) => obj[h] = row[i]!==undefined ? row[i] : '');
+    return obj;
+  });
+
+  try {
+    if (typeof firebaseDB !== 'undefined') {
+      const ref = firebaseDB.ref(`partner_services/${userPhone}`);
+      await ref.set(services);
+    }
+    const key = `wusul_partner_services_${userPhone}`;
+    localStorage.setItem(key, JSON.stringify(services));
+
+    btn.textContent = '✅ تم الحفظ!';
+    btn.style.background = 'linear-gradient(135deg,#22c55e,#16a34a)';
+    loadSavedServices();
+  } catch(e) {
+    alert('خطأ أثناء الحفظ: ' + e.message);
+    btn.disabled=false; btn.textContent='💾 حفظ ونشر الخدمات';
+  }
+}
+
+function clearData() {
+  parsedData=[], headers=[];
+  document.getElementById('stats-section').style.display='none';
+  document.getElementById('preview-section').style.display='none';
+  document.getElementById('file-input').value='';
+}
+
+function loadSavedServices() {
+  const userPhone = Store.user?.phone || 'unknown';
+  const key = `wusul_partner_services_${userPhone}`;
+  const data = JSON.parse(localStorage.getItem(key)||'[]');
+  const el = document.getElementById('saved-services');
+  if (!data.length) { el.innerHTML='<p style="color:var(--text-muted);font-weight:700;text-align:center;padding:20px;">لم يتم نشر خدمات بعد</p>'; return; }
+  el.innerHTML = `<p style="color:var(--text-muted);font-weight:700;font-size:.85rem;margin-bottom:12px;">${data.length} خدمة منشورة</p>`
+    + data.slice(0,5).map(s=>`
+    <div style="padding:12px 0;border-bottom:1px solid var(--border-rgba);display:flex;justify-content:space-between;">
+      <span style="font-weight:900;color:white;font-size:.88rem;">${Object.values(s)[3]||'خدمة'}</span>
+      <span style="font-size:.75rem;color:var(--text-muted);font-weight:700;">${new Date(s.createdAt).toLocaleDateString('ar-SY')}</span>
+    </div>`).join('');
+}
+
+function showProgress(text, pct) {
+  document.getElementById('upload-progress').style.display='block';
+  document.getElementById('progress-text').textContent=text;
+  document.getElementById('progress-pct').textContent=pct+'%';
+  document.getElementById('progress-fill').style.width=pct+'%';
+}
+function hideProgress() { document.getElementById('upload-progress').style.display='none'; }
+
+function downloadTemplate() {
+  const data = [
+    ['اسم الخدمة','الوصف','السعر','الفئة','المدة','المدينة','متاح'],
+    ['كشف عام','كشف طبي شامل','15000','طبية','30 دقيقة','دمشق','نعم'],
+    ['تحليل دم','تحليل CBC كامل','8000','مختبرات','يوم','حلب','نعم']
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'الخدمات');
+  XLSX.writeFile(wb, 'moamalaty_services_template.xlsx');
+}
+
+document.addEventListener('DOMContentLoaded', loadSavedServices);
+</script>
+</body>
+</html>

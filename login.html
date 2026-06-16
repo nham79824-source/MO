@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تسجيل الدخول - معاملاتي</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+<script src="https://cdn.emailjs.com/dist/email.min.js"></script>
+<style>
+.auth-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;}
+.auth-card{width:100%;max-width:460px;background:var(--card-bg);backdrop-filter:blur(20px);border-radius:36px;padding:48px 40px;border:1px solid var(--border-rgba);box-shadow:var(--card-shadow);}
+@media(max-width:480px){.auth-card{padding:28px 20px;border-radius:22px;}}
+.step{display:none;} .step.active{display:block;animation:fadeUp .4s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.tab-switch{display:flex;background:rgba(255,255,255,0.04);border-radius:16px;padding:4px;margin-bottom:28px;border:1px solid var(--border-rgba);}
+.tab-btn{flex:1;padding:12px;border:none;background:none;color:var(--text-muted);font-weight:800;font-size:.85rem;border-radius:13px;cursor:pointer;transition:.3s;font-family:'Almarai',sans-serif;}
+.tab-btn.active{background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#000;}
+.otp-boxes{display:flex;gap:10px;justify-content:center;margin:20px 0;}
+.otp-box{width:48px;height:56px;border-radius:14px;border:2px solid var(--border-rgba);background:rgba(15,15,18,.9);color:#fff;font-size:1.4rem;font-weight:900;text-align:center;outline:none;transition:.3s;font-family:'Almarai',sans-serif;}
+.otp-box:focus{border-color:var(--gold);box-shadow:0 0 16px rgba(197,160,33,.3);}
+.err-box{display:none;padding:12px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#f87171;border-radius:14px;font-size:.82rem;font-weight:800;margin-bottom:18px;text-align:center;}
+.success-box{display:none;padding:12px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:#4ade80;border-radius:14px;font-size:.82rem;font-weight:800;margin-bottom:18px;text-align:center;}
+.icon-box{width:68px;height:68px;background:rgba(197,160,33,.08);border:2px solid var(--gold);border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;font-size:28px;color:var(--gold);box-shadow:0 0 24px rgba(197,160,33,.15);}
+.timer{font-size:.78rem;color:var(--text-muted);font-weight:700;text-align:center;margin-top:12px;}
+.timer span{color:var(--gold);}
+</style>
+</head>
+<body>
+<nav class="glass-nav">
+  <a href="index.html" class="logo-container">
+    <div class="logo-box"><img src="assets/logo.png" alt="معاملاتي"></div>
+    <div style="font-weight:950;font-size:19px;color:white;">معاملاتي</div>
+  </a>
+</nav>
+
+<div class="auth-wrap">
+
+  <!-- STEP 1: Login Form -->
+  <div id="s-login" class="auth-card step active">
+    <div class="text-center mb-2">
+      <div class="icon-box">🗝️</div>
+      <h2 style="font-weight:950;font-size:1.8rem;color:white;">دخول المشتركين</h2>
+      <p style="color:var(--text-muted);font-weight:700;font-size:.9rem;margin-top:8px;">أدخل بياناتك للولوج إلى عالمك الذكي</p>
+    </div>
+
+    <div id="err-login" class="err-box"></div>
+
+    <form id="login-form">
+      <div id="field-email" class="form-group">
+        <label>البريد الإلكتروني</label>
+        <input type="email" id="inp-email" class="form-input" placeholder="example@mail.com" required>
+      </div>
+      <div class="form-group">
+        <label>كلمة المرور</label>
+        <div style="position:relative;">
+          <input type="password" id="inp-pass" class="form-input" placeholder="••••••••" style="padding-left:50px;">
+          <i class="fas fa-eye" id="togglePass" style="position:absolute;left:18px;top:50%;transform:translateY(-50%);color:var(--gold);cursor:pointer;padding:10px;"></i>
+        </div>
+      </div>
+      <button type="submit" id="login-btn" class="btn btn-primary" style="width:100%;padding:18px;border-radius:20px;">دخول 🔒</button>
+    </form>
+
+    <div class="text-center" style="margin-top:18px;">
+      <button onclick="goReset()" style="background:none;border:none;color:var(--gold);font-weight:900;cursor:pointer;font-size:.9rem;">نسيت كلمة المرور؟</button>
+    </div>
+    <hr style="margin:24px 0;border:none;border-top:1px solid var(--border-rgba);">
+    <div class="text-center">
+      <p style="font-size:.9rem;color:var(--text-muted);font-weight:700;margin-bottom:14px;">ليس لديك حساب؟</p>
+      <a href="register.html" class="btn btn-primary" style="width:100%;justify-content:center;padding:16px;border-radius:20px;">إنشاء حساب جديد ✨</a>
+    </div>
+  </div>
+
+  <!-- STEP 2: OTP Verification -->
+  <div id="s-otp" class="auth-card step">
+    <div class="text-center mb-2">
+      <div class="icon-box">📩</div>
+      <h2 style="font-weight:950;font-size:1.7rem;">تأكيد الهوية</h2>
+      <p id="otp-desc" style="color:var(--text-muted);font-weight:700;margin-top:8px;font-size:.85rem;">تم إرسال رمز مكون من 6 أرقام</p>
+    </div>
+    <div id="err-otp" class="err-box"></div>
+    <div id="ok-otp" class="success-box"></div>
+    <div class="otp-boxes">
+      <input class="otp-box" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]">
+      <input class="otp-box" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]">
+      <input class="otp-box" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]">
+      <input class="otp-box" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]">
+      <input class="otp-box" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]">
+      <input class="otp-box" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]">
+    </div>
+    <div class="timer">الرمز صالح لـ <span id="countdown">10:00</span></div>
+    <button id="verify-btn" onclick="verifyOTPCode()" class="btn btn-primary" style="width:100%;padding:18px;border-radius:20px;margin-top:20px;">تحقق وتكملة ✅</button>
+    <div class="text-center" style="margin-top:14px;">
+      <button id="resend-btn" onclick="resendOTP()" style="background:none;border:none;color:var(--gold);font-weight:900;cursor:pointer;font-size:.85rem;" disabled>إعادة الإرسال (يتاح بعد انتهاء المؤقت)</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: Reset Password -->
+  <div id="s-reset" class="auth-card step">
+    <div class="text-center mb-2">
+      <div class="icon-box">🔄</div>
+      <h2 style="font-weight:950;font-size:1.7rem;">استعادة كلمة المرور</h2>
+      <p style="color:var(--text-muted);font-weight:700;margin-top:8px;font-size:.85rem;">أدخل بريدك الإلكتروني لاستلام رمز الاستعادة</p>
+    </div>
+    <div id="err-reset" class="err-box"></div>
+    <div id="ok-reset" class="success-box"></div>
+    <form id="reset-form-1">
+      <div class="form-group">
+        <label>البريد الإلكتروني</label>
+        <input type="email" id="reset-email" class="form-input" placeholder="example@mail.com" required>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;padding:18px;border-radius:20px;">إرسال رمز الاستعادة 📩</button>
+    </form>
+  </div>
+
+  <!-- STEP 4: New Password -->
+  <div id="s-newpass" class="auth-card step">
+    <div class="text-center mb-2">
+      <div class="icon-box">🔐</div>
+      <h2 style="font-weight:950;font-size:1.7rem;">كلمة مرور جديدة</h2>
+    </div>
+    <div id="err-newpass" class="err-box"></div>
+    <form id="newpass-form">
+      <div class="form-group">
+        <label>كلمة المرور الجديدة</label>
+        <input type="password" id="new-pass" class="form-input" placeholder="••••••••" minlength="6" required>
+      </div>
+      <div class="form-group">
+        <label>تأكيد كلمة المرور</label>
+        <input type="password" id="confirm-pass" class="form-input" placeholder="••••••••" required>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;padding:18px;border-radius:20px;">حفظ كلمة المرور 💾</button>
+    </form>
+  </div>
+
+</div>
+
+<script src="js/security.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/config.js"></script>
+<script src="js/email-auth.js"></script>
+<script src="js/auth.js"></script>
+<script>
+let loginMode = 'email';   // Forced email mode
+let flowType  = 'LOGIN';   // 'LOGIN' | 'RESET'
+let pendingUser = null, pendingToken = null;
+let targetEmail = '', targetPhone = '';
+let countdownTimer = null;
+
+// ── Show Step ───────────────────────────────────────
+function showStep(id) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ── Countdown Timer ─────────────────────────────────
+function startCountdown(seconds=600) {
+  clearInterval(countdownTimer);
+  document.getElementById('resend-btn').disabled = true;
+  const el = document.getElementById('countdown');
+  countdownTimer = setInterval(() => {
+    const m = Math.floor(seconds/60), s = seconds%60;
+    el.textContent = `${m}:${s.toString().padStart(2,'0')}`;
+    seconds--;
+    if (seconds < 0) {
+      clearInterval(countdownTimer);
+      el.textContent = '0:00';
+      document.getElementById('resend-btn').disabled = false;
+    }
+  }, 1000);
+}
+
+// ── OTP Boxes ───────────────────────────────────────
+document.querySelectorAll('.otp-box').forEach((box, i, boxes) => {
+  box.addEventListener('input', e => {
+    if (box.value && i < boxes.length-1) boxes[i+1].focus();
+  });
+  box.addEventListener('keydown', e => {
+    if (e.key==='Backspace' && !box.value && i>0) boxes[i-1].focus();
+  });
+  box.addEventListener('paste', e => {
+    e.preventDefault();
+    const paste = (e.clipboardData||window.clipboardData).getData('text').replace(/\D/g,'');
+    [...paste].slice(0,6).forEach((ch,j) => { if(boxes[j]) boxes[j].value=ch; });
+    const last = Math.min(paste.length, 5);
+    if(boxes[last]) boxes[last].focus();
+  });
+});
+
+function getOTPValue() {
+  return [...document.querySelectorAll('.otp-box')].map(b=>b.value).join('');
+}
+function clearOTPBoxes() {
+  document.querySelectorAll('.otp-box').forEach(b=>b.value='');
+  document.querySelectorAll('.otp-box')[0].focus();
+}
+
+// ── Login Form ──────────────────────────────────────
+document.getElementById('login-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = document.getElementById('login-btn');
+  const errBox = document.getElementById('err-login');
+  errBox.style.display = 'none';
+  btn.disabled = true; btn.textContent = 'جاري التحقق...';
+
+  let res;
+  const email = document.getElementById('inp-email').value.trim();
+  const pass  = document.getElementById('inp-pass').value;
+  if (!email || !pass) { showErr(errBox,'يرجى ملء جميع الحقول'); btn.disabled=false; btn.textContent='دخول 🔒'; return; }
+  targetEmail = email;
+  res = await EmailAuth.loginWithEmail(email, pass);
+
+  if (!res.success) {
+    showErr(errBox, res.message || 'بيانات غير صحيحة');
+    btn.disabled=false; btn.textContent='دخول 🔒';
+    return;
+  }
+
+  pendingUser = res.user; pendingToken = res.token;
+  flowType = 'LOGIN';
+
+  // Send OTP
+  btn.textContent = 'جاري إرسال رمز التحقق...';
+  let otpRes;
+  if (loginMode === 'email') {
+    otpRes = await EmailAuth.sendOTP(targetEmail);
+    document.getElementById('otp-desc').textContent = `تم إرسال الرمز إلى ${targetEmail}`;
+  } else {
+    otpRes = await Auth.sendOTP(targetPhone, '');
+    document.getElementById('otp-desc').textContent = `تم إرسال الرمز إلى ${targetPhone}`;
+  }
+
+  if (otpRes.success) {
+    showStep('s-otp');
+    startCountdown();
+    clearOTPBoxes();
+    // Dev mode auto-fill
+    if (otpRes.simulated && otpRes.devCode) {
+      const code = otpRes.devCode.toString();
+      document.querySelectorAll('.otp-box').forEach((b,i)=>b.value=code[i]||'');
+      showInfo(document.getElementById('ok-otp'), `[تطوير] الرمز: ${code}`);
+    }
+  } else {
+    showErr(errBox, otpRes.message || 'فشل إرسال الرمز');
+    btn.disabled=false; btn.textContent='دخول 🔒';
+  }
+});
+
+// ── Verify OTP ──────────────────────────────────────
+async function verifyOTPCode() {
+  const code = getOTPValue();
+  if (code.length < 6) { showErr(document.getElementById('err-otp'),'أدخل الرمز كاملاً (6 أرقام)'); return; }
+
+  const btn = document.getElementById('verify-btn');
+  btn.disabled=true; btn.textContent='جاري التحقق...';
+
+  let verifyRes;
+  if (loginMode === 'email' || flowType === 'RESET') {
+    verifyRes = await EmailAuth.verifyOTP(targetEmail, code);
+  } else {
+    verifyRes = await Auth.verifyOTP(code);
+  }
+
+  if (verifyRes.success) {
+    clearInterval(countdownTimer);
+    if (flowType === 'LOGIN') {
+      Auth.finalizeLogin(pendingUser, pendingToken);
+      showInfo(document.getElementById('ok-otp'), 'تم التحقق! جاري التوجيه...');
+      setTimeout(() => location.href = 'dashboard.html', 1000);
+    } else {
+      showStep('s-newpass');
+    }
+  } else {
+    showErr(document.getElementById('err-otp'), verifyRes.message || 'رمز خاطئ');
+    btn.disabled=false; btn.textContent='تحقق وتكملة ✅';
+  }
+}
+
+// ── Resend OTP ──────────────────────────────────────
+async function resendOTP() {
+  if (loginMode === 'email' || flowType === 'RESET') {
+    await EmailAuth.sendOTP(targetEmail);
+  } else {
+    await Auth.sendOTP(targetPhone, '');
+  }
+  clearOTPBoxes();
+  startCountdown();
+  showInfo(document.getElementById('ok-otp'), 'تم إعادة إرسال الرمز');
+}
+
+// ── Forgot Password ─────────────────────────────────
+function goReset() {
+  showStep('s-reset');
+  flowType = 'RESET';
+  loginMode = 'email';
+}
+
+document.getElementById('reset-form-1').addEventListener('submit', async e => {
+  e.preventDefault();
+  const email = document.getElementById('reset-email').value.trim();
+  const errBox = document.getElementById('err-reset');
+  const okBox  = document.getElementById('ok-reset');
+  errBox.style.display='none'; okBox.style.display='none';
+
+  const user = await EmailAuth.getUserByEmail(email);
+  if (!user) { showErr(errBox,'البريد الإلكتروني غير مسجل'); return; }
+
+  targetEmail = email;
+  const r = await EmailAuth.sendOTP(email);
+  if (r.success) {
+    document.getElementById('otp-desc').textContent = `رمز الاستعادة أُرسل إلى ${email}`;
+    showStep('s-otp');
+    startCountdown();
+    clearOTPBoxes();
+    if (r.simulated && r.devCode) {
+      const code = r.devCode.toString();
+      document.querySelectorAll('.otp-box').forEach((b,i)=>b.value=code[i]||'');
+      showInfo(document.getElementById('ok-otp'), `[تطوير] الرمز: ${code}`);
+    }
+  } else {
+    showErr(errBox, r.message);
+  }
+});
+
+// ── New Password ────────────────────────────────────
+document.getElementById('newpass-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const pass1 = document.getElementById('new-pass').value;
+  const pass2 = document.getElementById('confirm-pass').value;
+  const errBox = document.getElementById('err-newpass');
+  errBox.style.display='none';
+
+  if (pass1.length < 6) { showErr(errBox,'كلمة المرور يجب أن تكون 6 أحرف على الأقل'); return; }
+  if (pass1 !== pass2)  { showErr(errBox,'كلمتا المرور غير متطابقتين'); return; }
+
+  const res = await EmailAuth.resetPassword(targetEmail, pass1);
+  if (res.success) {
+    alert('✅ تم تغيير كلمة المرور بنجاح! سجّل دخولك الآن.');
+    location.reload();
+  } else {
+    showErr(errBox, res.message || 'فشل تغيير كلمة المرور');
+  }
+});
+
+// ── Helpers ─────────────────────────────────────────
+function showErr(el, msg)  { el.textContent=msg; el.style.display='block'; }
+function showInfo(el, msg) { el.textContent=msg; el.style.display='block'; }
+
+// Toggle password
+document.getElementById('togglePass').addEventListener('click', function() {
+  const inp = document.getElementById('inp-pass');
+  inp.type = inp.type==='password' ? 'text' : 'password';
+  this.classList.toggle('fa-eye-slash');
+});
+</script>
+</body>
+</html>
