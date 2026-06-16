@@ -86,9 +86,92 @@
     <script>
         let allDoctors = [];
 
+        async function loadApprovedPartners() {
+            const partners = [];
+
+            if (typeof FirebaseDB !== 'undefined' && FirebaseDB.partnerRequests && typeof FirebaseDB.partnerRequests.getAll === 'function') {
+                try {
+                    const res = await FirebaseDB.partnerRequests.getAll();
+                    if (res.success && Array.isArray(res.data)) {
+                        partners.push(...res.data.filter(p => p.status === 'APPROVED'));
+                    }
+                } catch (e) {
+                    console.warn('Failed loading approved partner_requests from Firebase:', e);
+                }
+            }
+
+            try {
+                const localApps = JSON.parse(localStorage.getItem('wusul_applications') || '[]');
+                if (Array.isArray(localApps)) {
+                    partners.push(...localApps.filter(p => p.status === 'APPROVED'));
+                }
+            } catch (e) { }
+
+            try {
+                const localDbApps = JSON.parse(localStorage.getItem('wusul_db_applications') || '[]');
+                if (Array.isArray(localDbApps)) {
+                    partners.push(...localDbApps.filter(p => p.status === 'APPROVED'));
+                }
+            } catch (e) { }
+
+            const cleaned = partners
+                .map(p => ({
+                    ...p,
+                    type: p.type || p.role || 'PARTNER',
+                    specialty: p.specialty || p.type || 'شريك معتمد',
+                    displayPrice: p.displayPrice || p.price || 'حسب الخدمة',
+                    avatar: p.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(p.name || p.ref || p.id || 'partner')}`,
+                    governorate: p.governorate || p.city || ''
+                }))
+                .filter((item, index, arr) => {
+                    const key = item.phone || item.id || item.ref;
+                    return key && arr.findIndex(x => (x.phone || x.id || x.ref) === key) === index;
+                });
+
+            try {
+                const localDocs = JSON.parse(localStorage.getItem('wusul_db_doctors') || '[]');
+                const existingKeys = new Set(localDocs.map(d => d.id || d.phone || d.ref));
+                const toAdd = cleaned.filter(item => {
+                    const key = item.id || item.phone || item.ref;
+                    return key && !existingKeys.has(key);
+                }).map(item => ({
+                    id: item.id || item.phone || item.ref,
+                    name: item.name || 'شريك',
+                    specialty: item.specialty,
+                    city: item.city || item.governorate || '',
+                    displayPrice: item.displayPrice,
+                    avatar: item.avatar,
+                    isVerified: true,
+                    type: item.type
+                }));
+                if (toAdd.length) {
+                    localStorage.setItem('wusul_db_doctors', JSON.stringify([...localDocs, ...toAdd]));
+                }
+            } catch (e) {
+                console.warn('Failed syncing approved partners into local doctors store:', e);
+            }
+
+            return cleaned;
+        }
+
         document.addEventListener('DOMContentLoaded', async () => {
             LocationHelper.initGovernorates('search-gov');
-            allDoctors = await Store.getData('doctors') || [];
+
+            const doctors = await Store.getData('doctors') || [];
+            const partners = await loadApprovedPartners();
+
+            const merged = [...doctors, ...partners];
+            const unique = [];
+            const seen = new Set();
+
+            merged.forEach(item => {
+                const key = item.id || item.phone || item.ref;
+                if (!key || seen.has(key)) return;
+                seen.add(key);
+                unique.push(item);
+            });
+
+            allDoctors = unique;
             renderDoctors(allDoctors);
         });
 
@@ -100,23 +183,28 @@
             }
             grid.innerHTML = '';
             doctorsList.forEach(dr => {
+                const label = dr.type === 'DOCTOR' ? 'طبيب' : (dr.type === 'PARTNER' ? 'شريك' : dr.type || 'شريك');
+                const specialty = dr.specialty || dr.type || 'شريك معتمد';
+                const location = dr.city || dr.governorate || 'غير محدد';
+
                 grid.innerHTML += `
                     <div class="card">
                         <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 25px;">
-                            <img src="${dr.avatar}" style="width: 75px; height: 75px; border-radius: 20px; border: 2px solid var(--border-rgba); background: rgba(255,255,255,0.05);">
+                            <img src="${dr.avatar || 'assets/nuser.png'}" style="width: 75px; height: 75px; border-radius: 20px; border: 2px solid var(--border-rgba); background: rgba(255,255,255,0.05); object-fit: cover;">
                             <div>
-                                <h3 style="font-weight: 950; font-size: 1.25rem; color: white;">${dr.name}</h3>
-                                <p style="color: var(--gold); font-weight: 900; font-size: 0.85rem;">${dr.specialty}</p>
-                                <p style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">📍 ${dr.city || 'غير محدد'}</p>
+                                <h3 style="font-weight: 950; font-size: 1.25rem; color: white;">${dr.name || 'مستخدم'}</h3>
+                                <p style="color: var(--gold); font-weight: 900; font-size: 0.85rem;">${specialty}</p>
+                                <p style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">📍 ${location}</p>
+                                <span style="display:inline-block;margin-top:6px;padding:6px 10px;border-radius:12px;background:rgba(255,255,255,0.05);font-size:0.75rem;color:var(--text-muted);">${label}</span>
                             </div>
                         </div>
                         <div style="background: rgba(197, 160, 33, 0.05); padding: 18px; border-radius: 20px; margin-bottom: 25px; border: 1px solid var(--border-rgba);">
                             <p style="font-size: 0.9rem; font-weight: 800; color: white; display: flex; justify-content: space-between;">
                                 <span>تكلفة الكشف الملكي:</span>
-                                <span style="color: var(--gold);">${dr.displayPrice || dr.price || 'حسب الخدمة'}</span>
+                                <span style="color: var(--gold);">${dr.displayPrice || 'حسب الخدمة'}</span>
                             </p>
                         </div>
-                        <a href="booking.html?id=${dr.id}" class="btn btn-primary" style="width: 100%; border-radius: 20px; font-size:1rem;">حجز استشارة 🩺</a>
+                        <a href="booking.html?id=${dr.id || dr.phone || dr.ref || ''}" class="btn btn-primary" style="width: 100%; border-radius: 20px; font-size:1rem;">حجز استشارة 🩺</a>
                     </div>
                 `;
             });
@@ -128,9 +216,11 @@
             const govQuery = document.getElementById('search-gov').value;
 
             const filtered = allDoctors.filter(dr => {
-                const matchName = dr.name.toLowerCase().includes(nameQuery);
-                const matchSpec = (dr.specialty || '').toLowerCase().includes(specQuery);
-                const matchGov = govQuery ? (dr.governorate === govQuery) : true;
+                const matchName = (dr.name || '').toLowerCase().includes(nameQuery);
+                const matchSpec = (dr.specialty || dr.type || '').toLowerCase().includes(specQuery);
+                const locationValue = `${dr.governorate || ''}`.toLowerCase();
+                const cityValue = `${dr.city || ''}`.toLowerCase();
+                const matchGov = govQuery ? (locationValue === govQuery.toLowerCase() || cityValue === govQuery.toLowerCase()) : true;
                 return matchName && matchSpec && matchGov;
             });
 
