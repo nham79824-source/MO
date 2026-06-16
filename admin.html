@@ -817,6 +817,40 @@
                     if (idx2 !== -1) { dbApps[idx2].status = status; dbApps[idx2].updatedAt = Date.now(); localStorage.setItem('wusul_db_applications', JSON.stringify(dbApps)); }
                 } catch (e) { /* ignore */ }
 
+                // If a doctor request is approved, also add/update the doctors directory so it shows in the public list
+                try {
+                    const requestSnap = await firebaseDB.ref(`partner_requests/${id}`).once('value');
+                    const requestData = requestSnap.exists() ? requestSnap.val() : null;
+                    if (status === 'APPROVED' && requestData && requestData.type === 'DOCTOR') {
+                        const doctorId = requestData.phone || requestData.id || id;
+                        const doctorEntry = {
+                            id: doctorId,
+                            name: requestData.name || 'طبيب جديد',
+                            phone: requestData.phone || '',
+                            specialty: requestData.specialty || 'طبيب عام',
+                            city: requestData.city || '',
+                            displayPrice: requestData.displayPrice || requestData.price || 'حسب الخدمة',
+                            avatar: requestData.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(requestData.name || doctorId)}`,
+                            isVerified: true,
+                            createdAt: requestData.createdAt || Date.now(),
+                            updatedAt: Date.now()
+                        };
+
+                        await FirebaseDB.doctors.create(doctorEntry);
+
+                        const localDoctors = JSON.parse(localStorage.getItem('wusul_db_doctors') || '[]');
+                        const existingDocIndex = localDoctors.findIndex(d => d.id === doctorId || d.phone === doctorId);
+                        if (existingDocIndex !== -1) {
+                            localDoctors[existingDocIndex] = { ...localDoctors[existingDocIndex], ...doctorEntry };
+                        } else {
+                            localDoctors.push(doctorEntry);
+                        }
+                        localStorage.setItem('wusul_db_doctors', JSON.stringify(localDoctors));
+                    }
+                } catch (e) {
+                    console.warn('Could not sync approved doctor to doctors directory:', e);
+                }
+
                 await FirebaseDB.auditLogs.create(`partner_request_${status.toLowerCase()}`, { requestId: id, action, admin: Store.user?.phone || 'ADMIN' });
                 Notify.show('تم التحديث', `تم ${status === 'APPROVED' ? 'قبول' : 'رفض'} الطلب بنجاح`, 'fas fa-check-circle');
                 renderPartnerRequests();
