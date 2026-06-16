@@ -817,23 +817,24 @@
                     if (idx2 !== -1) { dbApps[idx2].status = status; dbApps[idx2].updatedAt = Date.now(); localStorage.setItem('wusul_db_applications', JSON.stringify(dbApps)); }
                 } catch (e) { /* ignore */ }
 
-                // If a doctor request is approved, also add/update the doctors directory so it shows in the public list
+                // If a partner or doctor request is approved, also add/update the doctors/partners directory so it shows in the public list
                 try {
                     const requestSnap = await firebaseDB.ref(`partner_requests/${id}`).once('value');
                     const requestData = requestSnap.exists() ? requestSnap.val() : null;
-                    if (status === 'APPROVED' && requestData && requestData.type === 'DOCTOR') {
+                    if (status === 'APPROVED' && requestData) {
                         const doctorId = requestData.phone || requestData.id || id;
                         const doctorEntry = {
                             id: doctorId,
-                            name: requestData.name || 'طبيب جديد',
+                            name: requestData.name || requestData.companyName || 'شريك جديد',
                             phone: requestData.phone || '',
-                            specialty: requestData.specialty || 'طبيب عام',
-                            city: requestData.city || '',
+                            specialty: requestData.specialty || requestData.type || 'شريك معتمد',
+                            city: requestData.city || requestData.governorate || '',
                             displayPrice: requestData.displayPrice || requestData.price || 'حسب الخدمة',
                             avatar: requestData.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(requestData.name || doctorId)}`,
                             isVerified: true,
                             createdAt: requestData.createdAt || Date.now(),
-                            updatedAt: Date.now()
+                            updatedAt: Date.now(),
+                            type: requestData.type || 'PARTNER'
                         };
 
                         await FirebaseDB.doctors.create(doctorEntry);

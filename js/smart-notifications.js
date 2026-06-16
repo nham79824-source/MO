@@ -7,18 +7,31 @@ const SmartNotifications = {
     },
 
     checkLocationEvents: () => {
-        // Mocking location change
-        const locations = ["المزة", "أبو رمانة", "مشروع دمر"];
-        const randomLoc = locations[Math.floor(Math.random() * locations.length)];
-
-        // Use Notify from notifications.js
-        if (typeof Notify !== 'undefined') {
-            Notify.show(
-                "اكتشاف منطقة جديدة",
-                `أنت الآن في ${randomLoc}. يوجد مشفى طوارئ وصيدلية مناوبة بالقرب منك.`,
-                "fas fa-map-marker-alt"
-            );
+        if (!navigator.geolocation || typeof Notify === 'undefined') {
+            return;
         }
+
+        navigator.geolocation.getCurrentPosition((position) => {
+            const lat = position.coords.latitude.toFixed(5);
+            const lng = position.coords.longitude.toFixed(5);
+            const lastLocation = localStorage.getItem('smart_last_location');
+            const currentLocation = `${lat},${lng}`;
+
+            if (lastLocation !== currentLocation) {
+                localStorage.setItem('smart_last_location', currentLocation);
+                Notify.show(
+                    "تحديث الموقع الجغرافي",
+                    `أنت الآن بالقرب من الإحداثيات ${currentLocation}. تم تحديد الخدمات الطبية الأقرب إليك.`,
+                    "fas fa-map-marker-alt"
+                );
+            }
+        }, (error) => {
+            console.warn('Geolocation unavailable for notifications:', error);
+        }, {
+            enableHighAccuracy: true,
+            maximumAge: 60000,
+            timeout: 10000
+        });
     },
 
     checkTimeEvents: () => {

@@ -428,14 +428,44 @@ const Auth = {
     approveDoctor: async (phone) => {
         try {
             await FirebaseDB.users.update(phone, { role: 'DOCTOR', isVerified: true });
-            // Also update in doctors table
-            const doc = await FirebaseDB.doctors.getAll();
-            const target = doc.data ? doc.data.find(d => d.phone === phone) : null;
-            if (target) {
-                await FirebaseDB.doctors.update(target.id || phone, { isVerified: true });
+            const userResp = await FirebaseDB.users.get(phone);
+            const userData = userResp.success ? userResp.data : null;
+
+            const doctorEntry = {
+                id: (userData && (userData.id || userData.uuid)) || phone,
+                name: (userData && userData.name) || 'طبيب جديد',
+                phone,
+                specialty: (userData && (userData.specialty || userData.type || userData.role === 'DOCTOR' ? 'طبيب عام' : 'شريك معتمد')) || 'طبيب عام',
+                city: (userData && (userData.city || userData.governorate || userData.area)) || '',
+                displayPrice: (userData && (userData.displayPrice || userData.price)) || 'حسب الخدمة',
+                avatar: (userData && userData.avatar) || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent((userData && userData.name) || phone)}`,
+                isVerified: true,
+                createdAt: (userData && userData.createdAt) || Date.now(),
+                updatedAt: Date.now()
+            };
+
+            const docResp = await FirebaseDB.doctors.getAll();
+            const existingDoctor = docResp.data ? docResp.data.find(d => d.phone === phone || d.id === doctorEntry.id) : null;
+            if (existingDoctor) {
+                await FirebaseDB.doctors.update(existingDoctor.id || doctorEntry.id, { ...doctorEntry, updatedAt: Date.now() });
+            } else {
+                await FirebaseDB.doctors.create(doctorEntry);
             }
+
+            try {
+                const localDocs = JSON.parse(localStorage.getItem('wusul_db_doctors') || '[]');
+                const idx = localDocs.findIndex(d => d.phone === phone || d.id === doctorEntry.id);
+                if (idx !== -1) {
+                    localDocs[idx] = { ...localDocs[idx], ...doctorEntry };
+                } else {
+                    localDocs.push(doctorEntry);
+                }
+                localStorage.setItem('wusul_db_doctors', JSON.stringify(localDocs));
+            } catch (e) { }
+
             return { success: true, message: "تم اعتماد الطبيب بنجاح" };
         } catch (e) {
+            console.error('ApproveDoctor Error:', e);
             return { success: false, message: "فشل اعتماد الطبيب" };
         }
     },

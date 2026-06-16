@@ -158,9 +158,10 @@
             LocationHelper.initGovernorates('search-gov');
 
             const doctors = await Store.getData('doctors') || [];
+            const approvedDoctors = doctors.filter(d => d.isVerified || d.status === 'APPROVED' || d.role === 'DOCTOR');
             const partners = await loadApprovedPartners();
 
-            const merged = [...doctors, ...partners];
+            const merged = [...approvedDoctors, ...partners];
             const unique = [];
             const seen = new Set();
 
